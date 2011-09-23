@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# cython: profile=True
 
 """
     jsondb
@@ -13,29 +14,55 @@ import os
 import tempfile
 import sqlite3
 import simplejson
+import re
+import types
 
-import logging, traceback
-logger = logging.getLogger(__file__)
+
+__version__  = '0.1'
 
 
-(NUM, STR, UNICODE, BOOL, NULL, LIST, DICT, KEY) = DATA_TYPES = range(8)
+(INT, FLOAT, STR, UNICODE, BOOL, NULLTYPE, LIST, DICT, KEY) = DATA_TYPES = range(9)
 DATA_INITIAL = {
-    NUM     : 0,
+    INT     : 0,
+    FLOAT   : 0.0,
     STR     : '',
     UNICODE : u'',
     BOOL    : False,
-    NULL    : None,
+    NULLTYPE    : None,
     LIST    : [],
     DICT    : {},
     KEY     : '',
 }
 
-SQL_INSERT_ROOT = "insert into jsondata values(0, ?, ?, ?)"
+DATA_TYPE_NAME = {
+    INT     : 'INT',
+    FLOAT   : 'FLOAT',
+    STR     : 'STR',
+    UNICODE : 'UNICODE',
+    BOOL    : 'BOOL',
+    NULLTYPE    : 'NULLTYPE',
+    LIST    : 'LIST',
+    DICT    : 'DICT',
+    KEY     : 'KEY',
+}
+
+TYPE_MAP = {
+    types.IntType     : INT,
+    types.FloatType   : FLOAT,
+    types.StringType  : STR,
+    types.UnicodeType : UNICODE,
+    types.BooleanType : BOOL,
+    types.NoneType    : NULLTYPE,
+    types.ListType    : LIST,
+    types.DictType    : DICT,
+}
+
+SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?)"
 SQL_INSERT = "insert into jsondata values(null, ?, ?, ?)"
 
-SQL_SELECT_DICT_ITEMS = "select id, type, value from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?)" % KEY
+SQL_SELECT_DICT_ITEMS = "select id, type, value from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
 
-SQL_SELECT_CHILDREN = "select id, type, value from jsondata where parent = ?"
+SQL_SELECT_CHILDREN = "select id, type, value from jsondata where parent = ? order by id asc"
 
 SQL_SELECT = "select * from jsondata where id = ?"
 
@@ -49,18 +76,10 @@ class UnsupportedTypeError(Error):
 
 
 def get_initial_data(_type):
-    if _type == NULL:
+    if _type == NULLTYPE:
         return None
     cls = DATA_INITIAL[_type].__class__
     return cls.__new__(cls)
-
-
-def get_data_type(data):
-    for _type, _data in DATA_INITIAL.iteritems():
-        if type(_data) == type(data):
-            return _type
-
-    raise UnsupportedTypeError, repr(data)
 
 
 from functools import wraps
@@ -104,7 +123,7 @@ class JsonDB(object):
             except:
                 pass
 
-            self.conn = sqlite3.connect(self.dbpath, isolation_level=None)
+            self.conn = sqlite3.connect(self.dbpath) #, isolation_level=None)
             self.conn.row_factory = sqlite3.Row
             self.conn.text_factory = str
             self.conn.execute('PRAGMA encoding = "UTF-8";')
@@ -143,7 +162,7 @@ class JsonDB(object):
         return max_id + 1 if max_id else 1
 
     @classmethod
-    @timeit
+    #@timeit
     def load(cls, path):
         self = cls(path)
         return self
@@ -162,24 +181,44 @@ class JsonDB(object):
 
         if root_type == BOOL:
             value = 'true' if value else 'false'
-        elif root_type == NUM:
-            value = value
+        elif root_type == INT:
+            value = int(value)
+        elif root_type == FLOAT:
+            value = float(value)
 
         c = self.cursor or self.get_cursor()
         conn = self.conn
-        c.execute(SQL_INSERT_ROOT, (-1, root_type, value))
+        c.execute(SQL_INSERT_ROOT, (root_type, value))
         conn.commit()
 
         return self
  
-    #@timeit
-    def feed(self, data, parent_id=0):
+    def feed(self, data, parent_id=-1):
+        """Append data to the specified parent.
+
+        Parent may be a dict or list.
+
+        Returns list of ids:
+        * value.id when appending {key : value} to a dict
+        * each_child.id when appending a list to a list
+        """
+        id_list, pending_list = self._feed(data, parent_id)
+        c = self.cursor or self.get_cursor()
+        c.executemany(SQL_INSERT, pending_list)
+        return id_list
+
+    def _feed(self, data, parent_id=-1):
         c = self.cursor or self.get_cursor()
 
         parent = self.get_row(parent_id)
         parent_type = parent['type']
+
+        id_list = []
+        pending_list = []
  
-        _type = get_data_type(data)
+        _type = TYPE_MAP.get(type(data))
+
+        #print data, DATA_TYPE_NAME[_type], DATA_TYPE_NAME[parent_type]
         if _type == DICT:
             if parent_type == DICT:
                 hash_id = parent_id
@@ -189,28 +228,62 @@ class JsonDB(object):
             for key, value in data.iteritems():
                 c.execute(SQL_INSERT, (hash_id, KEY, key,))
                 key_id = c.lastrowid
-                self.feed(value, key_id)
+                #print 'added dict item %s to %s' % (key_id, hash_id)
+                _ids, _pendings = self._feed(value, key_id)
+                id_list += _ids
+                pending_list += _pendings
 
         elif _type == LIST:
+            # TODO: need to distinguish *appending* from *merging* 
+            #       now we always assume it's appending
             c.execute(SQL_INSERT, (parent_id, _type, '',))
             hash_id = c.lastrowid
+            id_list.append(hash_id)
             for x in data:
-                self.feed(x, hash_id)
+                _ids, _pendings = self._feed(x, hash_id)
+                id_list += _ids
+                pending_list += _pendings
+                #print 'added list item to %s' % (hash_id)
         else:
-            c.execute(SQL_INSERT, (parent_id, _type, data,))
+            #c.execute(SQL_INSERT, (parent_id, _type, data,))
+            pending_list.append((parent_id, _type, data,))
+            id_list.append(c.lastrowid)
+            #print 'added other item %s to %s' % (id_list[0], parent_id)
 
+        return id_list, pending_list
         #self.conn.commit()
 
-    @timeit
-    def xpath(self, path, node_id=0):
-        print 'path', path
-        paths = path[2:].split('.')
+    def break_path(self, path):
+        # here we ignore the '..' expr for now
+        path = path[2:]
+        conditions = []
+        def func(m):
+            rslt = '__%s__' % len(conditions)
+            conditions.append(m.group(0))
+            return rslt
+
+        normed = re.sub(r'\[(.*?)\]', func, path)
+        groups = normed.split('.')
+
+        def recover(m):
+            return conditions[int(m.group(1))]
+        return [re.sub(r'__([0-9]*)__', recover, g) for g in groups]
+
+    #@timeit
+    def xpath(self, path, node_id=-1):
+        #print 'jsondb.path', path
+        paths = self.break_path(path)
         c = self.cursor or self.get_cursor()
 
         parent_id = node_id
 
         with self.conn:
-            for i, name in enumerate(paths[:-1]):
+            for i, expr in enumerate(paths[:-1]):
+                if expr[-1] == ']':
+                    name, cond = expr[:-1].split('[')
+                else:
+                    name = expr
+                    cond = None
                 #print i, name
                 row = self.get_dict_items(parent_id, name, only_one=True).next()
                 if not row:
@@ -218,7 +291,13 @@ class JsonDB(object):
                 parent_id = row['id']
         
             #print paths[-1]
-            return [(row['id'], row['value']) for row in self.get_dict_items(parent_id, value=paths[-1]) if row]
+            expr = paths[-1]
+            if expr[-1] == ']':
+                name, cond = expr[:-1].split('[')
+            else:
+                name = expr
+                cond = None
+            return [(row['id'], row['value']) for row in self.get_dict_items(parent_id, value=name) if row]
 
     def get_row(self, row_id):
         c = self.cursor or self.get_cursor()
@@ -253,13 +332,13 @@ class JsonDB(object):
             row = c.fetchone()
             yield row
         else:
-            for row in  c:
+            for row in  c.fetchall():
                 yield row
 
     def build_node(self, row):
         node = get_initial_data(row['type'])
         _type = row['type']
-        #print row['id'], type(node)
+        #print 'buiding node', row['id'], type(node)
 
         if _type == KEY:
             for child in self.get_children(row['id']):
@@ -278,27 +357,38 @@ class JsonDB(object):
         elif _type == BOOL:
             node = row['value'] == 'true'
 
-        elif _type == NUM:
+        elif _type == INT:
+            node = int(row['value'])
+
+        elif _type == FLOAT:
             node = float(row['value'])
 
-        elif _type == NULL:
+        elif _type == NULLTYPE:
             node = None
 
         return node
 
     @classmethod
-    @timeit
+    #@timeit
     def from_file(cls, dbpath, filepath):
         json = simplejson.load(open(filepath))
-        _type = get_data_type(json)
+        _type = TYPE_MAP.get(type(json))
         self = cls.create(dbpath, root_type=_type)
         with self.conn:
             self.feed(json)
         return self
 
     def dumps(self):
-        root = self.get_row(0)
+        root = self.get_row(-1)
         return self.build_node(root)
+
+    def dumprows(self):
+        c = self.cursor or self.get_cursor()
+        c.execute('select * from jsondata order by id')
+        fmt = '{0:>12} {1:>12} {2:12} {3:12}'
+        print fmt.format('id', 'parent', 'type', 'value')
+        for row in c.fetchall():
+            print fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], row['value'])
 
     def close(self):
         if self.cursor:
@@ -307,57 +397,6 @@ class JsonDB(object):
             self.conn.commit()
             self.conn.close()
 
-
-if __name__ == '__main__':
-    print '-'*40
-    print 'test string'
-    db = JsonDB.create('foo.db', root_type=STR, value='hello world!')
-    #print 'dumps', db.dumps()
-    db.close()
-    db = JsonDB.load('foo.db')
-    assert db.dumps() == 'hello world!'
-
-    print '-'*40
-    print 'test bool'
-    db = JsonDB.create('bar.db', root_type=BOOL, value=True)
-    assert db.dumps() == True
-
-    print '-'*40
-    print 'test num'
-    db = JsonDB.create('bar.db', root_type=NUM, value=1.2)
-    assert db.dumps() == 1.2
-
-    print '-'*40
-    print'test list'
-    db = JsonDB.create('bar.db', root_type=LIST)
-    db.feed('hello')
-    db.feed('world!')
-    db.feed([1, 2])
-    #print 'dumps', db.dumps()
-    db.close()
-    db = JsonDB.load('bar.db')
-    #print db.dumps()
-    assert db.dumps() == ['hello', 'world!', [1.0, 2.0]]
-
-
-    print '-'*40
-    print'test dict'
-    db = JsonDB.create('bar.db', root_type=DICT)
-    db.feed({'name': 'koba'})
-    db.feed({'files': ['xxx.py', 345, None, True]})
-    db.close()
-    db = JsonDB.load('bar.db')
-    print 'dumps', db.dumps()
-    print db.xpath('$.files')
-
-    print '-'*40
-    print'test from file'
-    db = JsonDB.from_file('bar.db', '1.json')
-    db.close()
-    db = JsonDB.load('bar.db')
-    #print 'dumps', db.dumps()
-    rslts = db.xpath('$.Domain')
-    for _id, _name in rslts:
-        print _id, _name
-        print db.xpath('$.typedef.type_name', _id)
+    def commit(self):
+        self.conn.commit()
 
