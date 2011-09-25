@@ -48,8 +48,8 @@ if __name__ == '__main__':
         db.close()
     db = JsonDB.load('2.db')
     rslts = db.xpath('$.Project.Obj')
-    for _id, _name in rslts:
-        print _id, _name
+    for _id, _name, link in rslts:
+        print _id, _name, link
         print db.xpath('$.name', _id)
         print db.xpath('$.description', _id)
     print db.xpath('$.Project.Obj[0].name')
@@ -98,14 +98,19 @@ if __name__ == '__main__':
     db = JsonDB.load('10.db')
     #print 'dumps', db.dumps()
     rslts = db.xpath('$.Domain')
-    for _id, _name in rslts:
+    for _id, _name, link in rslts:
         print _id, _name
         print db.xpath('$.name', _id)
         print db.xpath('$.description', _id)
         print db.xpath('$.typedef.type_name', _id)
     rslts = db.xpath('$.Obj')
-    for _id, _name in rslts:
-        print _id, _name
+    for _id, _name, link in rslts:
+        db.update_link(_id, 'i am a link for %s!' % _id)
+    db.commit()
+
+    rslts = db.xpath('$.Obj')
+    for _id, _name, link in rslts:
+        print _id, _name, link
         print db.xpath('$.name', _id)
         print db.xpath('$.description', _id)
 

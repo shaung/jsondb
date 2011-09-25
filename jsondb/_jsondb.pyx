@@ -57,13 +57,13 @@ TYPE_MAP = {
     types.DictType    : DICT,
 }
 
-SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?)"
-SQL_INSERT = "insert into jsondata values(null, ?, ?, ?)"
+SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?, null)"
+SQL_INSERT = "insert into jsondata values(null, ?, ?, ?, null)"
 
-SQL_SELECT_DICT_ITEMS = "select id, type, value from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
+SQL_SELECT_DICT_ITEMS = "select id, type, value, link from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
 
-SQL_SELECT_CHILDREN = "select id, type, value from jsondata where parent = ? order by id asc"
-SQL_SELECT_CHILDREN_COND = "select t.id, t.type, t.value from jsondata t where t.parent = ? %s order by t.id %s %s"
+SQL_SELECT_CHILDREN = "select id, type, value, link from jsondata where parent = ? order by id asc"
+SQL_SELECT_CHILDREN_COND = "select t.id, t.type, t.value, t.link from jsondata t where t.parent = ? %s order by t.id %s %s"
 
 SQL_SELECT = "select * from jsondata where id = ?"
 
@@ -145,12 +145,14 @@ class JsonDB(object):
         (id     integer primary key,
          parent integer,
          type   integer,
-         value  blob
+         value  blob,
+         link   text
         )""")
 
         conn.execute("""create index if not exists jsondata_idx on jsondata
         (parent asc,
-         type   asc
+         type   asc,
+         value
         )""")
 
         conn.commit()
@@ -348,7 +350,7 @@ class JsonDB(object):
         return name, cond, extra, order, reverse
 
     #@timeit
-    def xpath(self, path, node_id=-1):
+    def xpath(self, path, node_id=-1, one=False):
         #print 'jsondb.path', path
         paths = self.break_path(path) if '.' in path[2:] else [path[2:]]
         c = self.cursor or self.get_cursor()
@@ -380,12 +382,19 @@ class JsonDB(object):
             else:
                 name, cond, extra, order, reverse = expr, '', '', 'asc', False
             #print name, cond, extra, order, reverse
-            rslt = sum(([(row['id'], row['value'] if row['type'] != BOOL else bool(row['value'])) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
-            return reversed(rslt) if reverse else rslt
+            rslt = sum(([(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
+            rslt = reversed(rslt) if reverse else rslt
+            if one:
+                return rslt[0] if rslt else None
+            return rslt
 
-    def get_row(self, row_id):
+    def update_link(self, rowid, link=None):
         c = self.cursor or self.get_cursor()
-        c.execute(SQL_SELECT, (row_id, ))
+        c.execute('update jsondata set link = ? where id = ?', (link, rowid, ))
+
+    def get_row(self, rowid):
+        c = self.cursor or self.get_cursor()
+        c.execute(SQL_SELECT, (rowid, ))
         rslt = c.fetchone()
         return rslt
 
