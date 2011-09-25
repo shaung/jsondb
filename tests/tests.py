@@ -42,18 +42,53 @@ if __name__ == '__main__':
     assert db.dumps() == ['hello', 'world!', [1.0, 2.0]]
 
 
+
+    if not os.path.exists('2.db'):
+        db = JsonDB.from_file('2.db', '2.json')
+        db.close()
+    db = JsonDB.load('2.db')
+    rslts = db.xpath('$.Project.Obj')
+    for _id, _name in rslts:
+        print _id, _name
+        print db.xpath('$.name', _id)
+        print db.xpath('$.description', _id)
+    print db.xpath('$.Project.Obj[0].name')
+    print db.xpath('$.Project.Obj[0].description')
+    print db.xpath('$.Project.Obj[-1].name')
+    print db.xpath('$.Project.Obj[-1].description')
+
+    db.close()
+
     print '-'*40
     print'test dict'
     db = JsonDB.create('bar.db', root_type=DICT)
-    db.feed({'name': 'koba'})
-    db.feed({'files': ['xxx.py', 345, None, True]})
+    _id = db.feed({'name': []})[0]
+    db.feed({'files': ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]}, _id)
+    db.feed({
+        'bloon': "here you ARE!",
+        'crazy': '2'}, _id)
+    db.feed({
+        'bloon': "well!",
+        'crazy': '4'}, _id)
+
     h_dom = db.feed({'dom' : []})[0]
     db.feed({'love': 1}, h_dom)
     db.close()
     db = JsonDB.load('bar.db')
     print 'dumps', db.dumps()
-    print db.xpath('$.files')
+    print db.xpath('$.files[0]')
+    print db.xpath('$.files[1]')
+    print db.xpath('$.files[2]')
+    print db.xpath('$.files[3]')
+    print db.xpath('$.files[4]')
+    print db.xpath('$.files[5]')
+    print db.xpath('$.files[-1]')
+    print db.xpath('$.files[-2]')
+    print db.xpath('$.files[-234]')
     print db.dumprows()
+
+    print db.xpath('$.name[?(@.crazy in ("2", "4"))].bloon')
+    print db.xpath('$.name[-1:].bloon')
 
     print '-'*40
     print'test from file'
@@ -73,18 +108,8 @@ if __name__ == '__main__':
         print _id, _name
         print db.xpath('$.name', _id)
         print db.xpath('$.description', _id)
-    rslts = db.xpath('$.Rev')
-    for _id, _name in rslts:
-        print db.xpath('$.CreateDate', _id)
- 
-    if not os.path.exists('2.db'):
-        db = JsonDB.from_file('2.db', '2.json')
-        db.close()
-    db = JsonDB.load('2.db')
-    for i in range(10000):
-        rslts = db.xpath('$.Obj')
-        for _id, _name in rslts:
-            print _id, _name
-            print db.xpath('$.name', _id)
-            print db.xpath('$.description', _id)
-    db.close()
+
+    for i in range(1000):
+        db.xpath('$.Obj[?(@.type in ("WebPanel", "Transaction"))].name')
+        db.xpath('$.Obj[?(@.type = "WebPanel")].name')
+     

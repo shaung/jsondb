@@ -63,6 +63,7 @@ SQL_INSERT = "insert into jsondata values(null, ?, ?, ?)"
 SQL_SELECT_DICT_ITEMS = "select id, type, value from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
 
 SQL_SELECT_CHILDREN = "select id, type, value from jsondata where parent = ? order by id asc"
+SQL_SELECT_CHILDREN_COND = "select t.id, t.type, t.value from jsondata t where t.parent = ? %s order by t.id %s %s"
 
 SQL_SELECT = "select * from jsondata where id = ?"
 
@@ -144,7 +145,7 @@ class JsonDB(object):
         (id     integer primary key,
          parent integer,
          type   integer,
-         value  text
+         value  blob
         )""")
 
         conn.execute("""create index if not exists jsondata_idx on jsondata
@@ -180,7 +181,7 @@ class JsonDB(object):
         self.create_tables()
 
         if root_type == BOOL:
-            value = 'true' if value else 'false'
+            value = int(value) #'true' if value else 'false'
         elif root_type == INT:
             value = int(value)
         elif root_type == FLOAT:
@@ -269,35 +270,118 @@ class JsonDB(object):
             return conditions[int(m.group(1))]
         return [re.sub(r'__([0-9]*)__', recover, g) for g in groups]
 
+    def _get_cond(self, expr):
+        cond = ''
+        extra = ''
+        order = 'asc'
+        reverse = False
+        #print expr
+        if expr[-1] == ']':
+            name, cond = expr[:-1].split('[')
+            if cond.startswith('?'):
+                extra = ''
+                # for sub query
+                cond = cond[2:-1]
+
+                def f(m):
+                    item = m.group(1)
+                    condition = m.group(2)
+                    # TODO: quick dirty adhoc solution
+                    condition = condition.replace('True', '1').replace('False', '0').replace('"', "'")
+                    return """ exists (select tv.id from jsondata tv
+                                where tv.parent in (select tk.id from jsondata tk 
+                                where tk.value = '%s' and tk.parent = t.id and tk.type = %s ) and tv.value %s )""" % (item, KEY, condition)
+
+                # break ands and ors
+                conds = []
+                for _and in cond.split(' and '):
+                    conds.append(' or '.join(re.sub(r'@\.(\w+)(.*)', f, _or) for _or in _and.split(' or ')))
+                cond = ' and %s ' % (' and '.join(conds))
+            else:
+                # for lists
+                while cond.startswith('(') and cond.endswith(')'):
+                    cond = cond[1:-1]
+                if cond and cond != '*':
+                    if ':' not in cond:
+                        nth = int(cond)
+                        if nth < 0:
+                            order = 'desc'
+                            nth *= -1
+                            nth -= 1
+                        extra = 'limit 1 offset %s' % nth
+                    else:
+                        nstart, nend = [x.strip() for x in cond.split(':')]
+                        if nstart or nend:
+                            if nstart and nend:
+                                # [1:1]
+                                # [-2:-1]
+                                nstart = int(nstart)
+                                nend = int(nend)
+                                limit = nend - nstart + 1
+                                if nstart < 0:
+                                    nstart *= -1
+                                    order = 'desc'
+                                extra = 'limit %s offset %s' % (limit, nstart)
+                            else:
+                                if nstart:
+                                    # [0:]
+                                    # [-1:]
+                                    nstart = int(nstart)
+                                    if nstart < 0:
+                                        nstart *= -1
+                                        order = 'desc'
+                                    extra = 'limit %s offset %s' % (nstart, nstart - 1)
+                                elif nend:
+                                    nend = int(nend)
+                                    if nend >= 0:
+                                        # [:1]
+                                        extra = 'limit %s' % (nend + 1)
+                                    else:
+                                        # TODO: the order can not be done directly.
+                                        # [:-1]
+                                        order = 'desc'
+                                        extra = 'limit -1 offset %s' % (nend * -1)
+                                        reverse = True
+                cond = ''
+        else:
+            name = expr
+        return name, cond, extra, order, reverse
+
     #@timeit
     def xpath(self, path, node_id=-1):
         #print 'jsondb.path', path
-        paths = self.break_path(path)
+        paths = self.break_path(path) if '.' in path[2:] else [path[2:]]
         c = self.cursor or self.get_cursor()
 
-        parent_id = node_id
+        parent_ids = [node_id]
 
         with self.conn:
             for i, expr in enumerate(paths[:-1]):
-                if expr[-1] == ']':
-                    name, cond = expr[:-1].split('[')
+                if '[' in expr:
+                    name, cond, extra, order, reverse = self._get_cond(expr)
                 else:
-                    name = expr
-                    cond = None
-                #print i, name
-                row = self.get_dict_items(parent_id, name, only_one=True).next()
-                if not row:
+                    name, cond, extra, order, reverse = expr, '', '', 'asc', False
+                #print i, name, cond, extra, order, reverse
+                new_parent_ids = []
+                for parent_id in parent_ids:
+                    row = self.get_dict_items(parent_id, name, cond=cond, order=order, extra=extra)
+                    ids = [r['id'] for r in row]
+                    if reverse:
+                        ids = reversed(ids)
+                    new_parent_ids += ids
+                parent_ids = new_parent_ids
+                if not parent_ids:
                     return []
-                parent_id = row['id']
         
             #print paths[-1]
             expr = paths[-1]
-            if expr[-1] == ']':
-                name, cond = expr[:-1].split('[')
+            if '[' in expr:
+                name, cond, extra, order, reverse = self._get_cond(expr)
             else:
-                name = expr
-                cond = None
-            return [(row['id'], row['value']) for row in self.get_dict_items(parent_id, value=name) if row]
+                name, cond, extra, order, reverse = expr, '', '', 'asc', False
+            #print name, cond, extra, order, reverse
+            rslt = sum(([(row['id'], row['value'] if row['type'] != BOOL else bool(row['value'])) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
+            return reversed(rslt) if reverse else rslt
 
     def get_row(self, row_id):
         c = self.cursor or self.get_cursor()
@@ -305,15 +389,16 @@ class JsonDB(object):
         rslt = c.fetchone()
         return rslt
 
-    def get_dict_items(self, parent_id, value, only_one=False):
+    def get_dict_items(self, parent_id, value, cond='', order='asc', extra=''):
         c = self.cursor or self.get_cursor()
         
-        extra = " LIMIT 1" if only_one else ""
-        rows = c.execute(SQL_SELECT_DICT_ITEMS + extra, (parent_id, value))
+        rows = c.execute(SQL_SELECT_DICT_ITEMS + ' limit 1', (parent_id, value))
         for row in rows:
             #print 'row', row
             if row['type'] == LIST:
-                for item in c.execute(SQL_SELECT_CHILDREN, (row['id'],)):
+                sql = SQL_SELECT_CHILDREN_COND % (cond, order, extra)
+                #print 'sql:%s' % sql
+                for item in c.execute(sql, (row['id'],)):
                     yield item
             else:
                 yield row
@@ -351,11 +436,14 @@ class JsonDB(object):
                 #print 'add child', child
                 func(self.build_node(child))
 
-        elif _type in (STR, UNICODE):
+        elif _type == STR:
+            node = row['value']
+
+        elif _type == UNICODE:
             node = row['value']
 
         elif _type == BOOL:
-            node = row['value'] == 'true'
+            node = bool(row['value'])
 
         elif _type == INT:
             node = int(row['value'])
