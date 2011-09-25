@@ -45,6 +45,7 @@ if __name__ == '__main__':
 
     if not os.path.exists('2.db'):
         db = JsonDB.from_file('2.db', '2.json')
+        db.build_index()
         db.close()
     db = JsonDB.load('2.db')
     rslts = db.xpath('$.Project.Obj')

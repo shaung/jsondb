@@ -88,7 +88,7 @@ import time
 
 
 def timeit(f):
-    @wraps(f)
+    #@wraps(f)
     def wrap(*args, **kws):
         s = time.time()
         rslt = f(*args, **kws)
@@ -151,11 +151,22 @@ class JsonDB(object):
 
         conn.execute("""create index if not exists jsondata_idx on jsondata
         (parent asc,
-         type   asc,
-         value
+         type   asc
         )""")
 
         conn.commit()
+
+    #@timeit
+    def build_index(self):
+        conn = self.get_connection()
+        conn.execute("""create index if not exists jsondata_idx on jsondata
+        (parent asc,
+         type   asc
+        )""")
+
+        conn.commit()
+
+        conn.execute("analyze jsondata_idx")
 
     def _get_hash_id(self, name):
         c = self.cursor or self.get_cursor()
