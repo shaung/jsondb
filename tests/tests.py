@@ -95,6 +95,7 @@ if __name__ == '__main__':
     print'test from file'
     if not os.path.exists('10.db'):
         db = JsonDB.from_file('10.db', '10.json')
+        db.build_index()
         db.close()
     db = JsonDB.load('10.db')
     #print 'dumps', db.dumps()

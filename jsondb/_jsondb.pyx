@@ -128,10 +128,10 @@ class JsonDB(object):
             self.conn.row_factory = sqlite3.Row
             self.conn.text_factory = str
             self.conn.execute('PRAGMA encoding = "UTF-8";')
-            self.conn.execute('PRAGMA foreign_keys = ON;')
+            self.conn.execute('PRAGMA foreign_keys = OFF;')
             self.conn.execute('PRAGMA synchronous = OFF;')
             self.conn.execute('PRAGMA page_size = 8192;')
-            self.conn.execute('PRAGMA automatic_index = 0;')
+            self.conn.execute('PRAGMA automatic_index = 1;')
             self.conn.execute('PRAGMA temp_store = MEMORY;')
             self.conn.execute('PRAGMA journal_mode = MEMORY;')
 
@@ -149,24 +149,14 @@ class JsonDB(object):
          link   text
         )""")
 
-        conn.execute("""create index if not exists jsondata_idx on jsondata
-        (parent asc,
-         type   asc
-        )""")
-
         conn.commit()
 
     #@timeit
     def build_index(self):
         conn = self.get_connection()
-        conn.execute("""create index if not exists jsondata_idx on jsondata
-        (parent asc,
-         type   asc
-        )""")
-
+        conn.execute("create index if not exists jsondata_idx on jsondata (parent asc)")
+        conn.execute("create index if not exists jsondata_idx on jsondata (type asc)")
         conn.commit()
-
-        conn.execute("analyze jsondata_idx")
 
     def _get_hash_id(self, name):
         c = self.cursor or self.get_cursor()
