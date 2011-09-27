@@ -59,6 +59,7 @@ TYPE_MAP = {
 
 SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?, null)"
 SQL_INSERT = "insert into jsondata values(null, ?, ?, ?, null)"
+SQL_UPDATE_LINK = "update jsondata set link = ? where id = ?"
 
 SQL_SELECT_DICT_ITEMS = "select id, type, value, link from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
 
@@ -100,12 +101,13 @@ def timeit(f):
 
 
 class JsonDB(object):
-    def __init__(self, filepath=None):
+    def __init__(self, filepath=None, link_key=None):
         self.conn = None
         self.cursor = None
         if not filepath:
             fd, filepath = tempfile.mkstemp(suffix='*.jsondb')
         self.dbpath = os.path.normpath(filepath)
+        self.link_key = link_key or '@__link__'
 
     def get_cursor(self):
         if not self.cursor or not self.conn:
@@ -124,11 +126,11 @@ class JsonDB(object):
             except:
                 pass
 
-            self.conn = sqlite3.connect(self.dbpath) #, isolation_level=None)
+            self.conn = sqlite3.connect(self.dbpath)
             self.conn.row_factory = sqlite3.Row
             self.conn.text_factory = str
             self.conn.execute('PRAGMA encoding = "UTF-8";')
-            self.conn.execute('PRAGMA foreign_keys = OFF;')
+            self.conn.execute('PRAGMA foreign_keys = ON;')
             self.conn.execute('PRAGMA synchronous = OFF;')
             self.conn.execute('PRAGMA page_size = 8192;')
             self.conn.execute('PRAGMA automatic_index = 1;')
@@ -149,13 +151,19 @@ class JsonDB(object):
          link   text
         )""")
 
+        conn.execute("create index if not exists jsondata_idx_composite on jsondata (parent, type)")
+        #conn.execute("create index if not exists jsondata_idx_value on jsondata (value)")
+        #conn.execute("create index if not exists jsondata_idx_type on jsondata (type asc)")
+ 
         conn.commit()
 
     #@timeit
     def build_index(self):
         conn = self.get_connection()
-        conn.execute("create index if not exists jsondata_idx on jsondata (parent asc)")
-        conn.execute("create index if not exists jsondata_idx on jsondata (type asc)")
+        #conn.execute("create index if not exists jsondata_idx_parent on jsondata (parent asc)")
+        #conn.execute("create index if not exists jsondata_idx_type on jsondata (type asc)")
+        #conn.execute("create index if not exists jsondata_idx_value on jsondata (parent, value)")
+        conn.execute("analyze")
         conn.commit()
 
     def _get_hash_id(self, name):
@@ -172,8 +180,8 @@ class JsonDB(object):
         return self
 
     @classmethod
-    def create(cls, path=None, root_type=DICT, value=None, overwrite=True):
-        self = cls(path)
+    def create(cls, path=None, root_type=DICT, value=None, overwrite=True, link_key=None):
+        self = cls(path, link_key=link_key)
         if overwrite:
             try:
                 conn = self.conn or self.get_connection()
@@ -184,7 +192,7 @@ class JsonDB(object):
         self.create_tables()
 
         if root_type == BOOL:
-            value = int(value) #'true' if value else 'false'
+            value = int(value)
         elif root_type == INT:
             value = int(value)
         elif root_type == FLOAT:
@@ -230,6 +238,9 @@ class JsonDB(object):
                 c.execute(SQL_INSERT, (parent_id, _type, '',))
                 hash_id = c.lastrowid
             for key, value in data.iteritems():
+                if key == self.link_key:
+                    c.execute(SQL_UPDATE_LINK, (value, hash_id))
+                    continue
                 c.execute(SQL_INSERT, (hash_id, KEY, key,))
                 key_id = c.lastrowid
                 #print 'added dict item %s to %s' % (key_id, hash_id)
@@ -392,6 +403,9 @@ class JsonDB(object):
     def update_link(self, rowid, link=None):
         c = self.cursor or self.get_cursor()
         c.execute('update jsondata set link = ? where id = ?', (link, rowid, ))
+
+    def set_link_key(self, link_key):
+        self.link_key = link_key
 
     def get_row(self, rowid):
         c = self.cursor or self.get_cursor()
