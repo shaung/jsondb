@@ -105,7 +105,7 @@ class JsonDB(object):
         self.conn = None
         self.cursor = None
         if not filepath:
-            fd, filepath = tempfile.mkstemp(suffix='*.jsondb')
+            fd, filepath = tempfile.mkstemp(suffix='.jsondb')
         self.dbpath = os.path.normpath(filepath)
         self.link_key = link_key or '@__link__'
 
