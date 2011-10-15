@@ -12,6 +12,7 @@
 
 import os
 import tempfile
+from collections import namedtuple
 import sqlite3
 import simplejson
 import re
@@ -88,19 +89,12 @@ from functools import wraps
 import time
 
 
-def timeit(f):
-    #@wraps(f)
-    def wrap(*args, **kws):
-        s = time.time()
-        rslt = f(*args, **kws)
-        e = time.time()
-        print f.__name__, 'used %ssec' % (e - s)
-        return rslt
+Result = namedtuple('Result', ('id', 'value', 'link'))
 
-    return wrap
+cdef class JsonDB:
+    cdef public dbpath
+    cdef conn, cursor, link_key
 
-
-class JsonDB(object):
     def __init__(self, filepath=None, link_key=None):
         self.conn = None
         self.cursor = None
@@ -109,7 +103,7 @@ class JsonDB(object):
         self.dbpath = os.path.normpath(filepath)
         self.link_key = link_key or '@__link__'
 
-    def get_cursor(self):
+    cdef inline get_cursor(self):
         if not self.cursor or not self.conn:
             conn = self.conn or self.get_connection()
             try:
@@ -119,7 +113,7 @@ class JsonDB(object):
             self.cursor= conn.cursor()
         return self.cursor
 
-    def get_connection(self, force=False):
+    cdef inline get_connection(self, force=False):
         if force or not self.conn:
             try:
                 self.conn.close()
@@ -139,7 +133,7 @@ class JsonDB(object):
 
         return self.conn
 
-    def create_tables(self):
+    cdef create_tables(self):
         conn = self.get_connection()
 
         # create tables
@@ -157,7 +151,6 @@ class JsonDB(object):
  
         conn.commit()
 
-    #@timeit
     def build_index(self):
         conn = self.get_connection()
         #conn.execute("create index if not exists jsondata_idx_parent on jsondata (parent asc)")
@@ -174,9 +167,8 @@ class JsonDB(object):
         return max_id + 1 if max_id else 1
 
     @classmethod
-    #@timeit
-    def load(cls, path):
-        self = cls(path)
+    def load(cls, path, **kws):
+        self = cls(path, **kws)
         return self
 
     @classmethod
@@ -205,7 +197,7 @@ class JsonDB(object):
 
         return self
  
-    def feed(self, data, parent_id=-1):
+    cpdef feed(self, data, int parent_id=-1):
         """Append data to the specified parent.
 
         Parent may be a dict or list.
@@ -219,7 +211,7 @@ class JsonDB(object):
         c.executemany(SQL_INSERT, pending_list)
         return id_list
 
-    def _feed(self, data, parent_id=-1):
+    cdef _feed(self, data, int parent_id=-1):
         c = self.cursor or self.get_cursor()
 
         parent = self.get_row(parent_id)
@@ -361,8 +353,7 @@ class JsonDB(object):
             name = expr
         return name, cond, extra, order, reverse
 
-    #@timeit
-    def xpath(self, path, node_id=-1, one=False):
+    def xpath(self, path, int node_id=-1, one=False):
         #print 'jsondb.path', path
         paths = self.break_path(path) if '.' in path[2:] else [path[2:]]
         c = self.cursor or self.get_cursor()
@@ -394,7 +385,7 @@ class JsonDB(object):
             else:
                 name, cond, extra, order, reverse = expr, '', '', 'asc', False
             #print name, cond, extra, order, reverse
-            rslt = sum(([(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
+            rslt = sum(([Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
             rslt = reversed(rslt) if reverse else rslt
             if one:
                 return rslt[0] if rslt else None
@@ -481,11 +472,10 @@ class JsonDB(object):
         return node
 
     @classmethod
-    #@timeit
-    def from_file(cls, dbpath, filepath):
+    def from_file(cls, dbpath, filepath, **kws):
         json = simplejson.load(open(filepath))
         _type = TYPE_MAP.get(type(json))
-        self = cls.create(dbpath, root_type=_type)
+        self = cls.create(dbpath, root_type=_type, **kws)
         with self.conn:
             self.feed(json)
         return self
