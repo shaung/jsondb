@@ -61,6 +61,7 @@ TYPE_MAP = {
 SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?, null)"
 SQL_INSERT = "insert into jsondata values(null, ?, ?, ?, null)"
 SQL_UPDATE_LINK = "update jsondata set link = ? where id = ?"
+SQL_UPDATE_VALUE = "update jsondata set value = ? where id = ?"
 
 SQL_SELECT_DICT_ITEMS = "select id, type, value, link from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
 
@@ -91,10 +92,7 @@ import time
 
 Result = namedtuple('Result', ('id', 'value', 'link'))
 
-cdef class JsonDB:
-    cdef public dbpath
-    cdef conn, cursor, link_key
-
+class JsonDB(object):
     def __init__(self, filepath=None, link_key=None):
         self.conn = None
         self.cursor = None
@@ -103,7 +101,7 @@ cdef class JsonDB:
         self.dbpath = os.path.normpath(filepath)
         self.link_key = link_key or '@__link__'
 
-    cdef inline get_cursor(self):
+    def get_cursor(self):
         if not self.cursor or not self.conn:
             conn = self.conn or self.get_connection()
             try:
@@ -113,7 +111,7 @@ cdef class JsonDB:
             self.cursor= conn.cursor()
         return self.cursor
 
-    cdef inline get_connection(self, force=False):
+    def get_connection(self, force=False):
         if force or not self.conn:
             try:
                 self.conn.close()
@@ -133,7 +131,7 @@ cdef class JsonDB:
 
         return self.conn
 
-    cdef create_tables(self):
+    def create_tables(self):
         conn = self.get_connection()
 
         # create tables
@@ -196,8 +194,21 @@ cdef class JsonDB:
         conn.commit()
 
         return self
+
+    def set_value(self, id, value):
+        c = self.cursor or self.get_cursor()
+        c.execute(SQL_UPDATE_VALUE, (value, id))
+
+    def store(self, data, parent=-1):
+        c = self.cursor or self.get_cursor()
+
+        _type = TYPE_MAP.get(type(data))
+
+        c.execute(SQL_INSERT, (parent, _type, simplejson.dumps(data),))
+
+        return c.lastrowid
  
-    cpdef feed(self, data, int parent_id=-1):
+    def feed(self, data, parent=-1):
         """Append data to the specified parent.
 
         Parent may be a dict or list.
@@ -206,12 +217,12 @@ cdef class JsonDB:
         * value.id when appending {key : value} to a dict
         * each_child.id when appending a list to a list
         """
-        id_list, pending_list = self._feed(data, parent_id)
+        id_list, pending_list = self._feed(data, parent)
         c = self.cursor or self.get_cursor()
         c.executemany(SQL_INSERT, pending_list)
         return id_list
 
-    cdef _feed(self, data, int parent_id=-1):
+    def _feed(self, data, parent_id=-1):
         c = self.cursor or self.get_cursor()
 
         parent = self.get_row(parent_id)
@@ -353,12 +364,12 @@ cdef class JsonDB:
             name = expr
         return name, cond, extra, order, reverse
 
-    def xpath(self, path, int node_id=-1, one=False):
+    def xpath(self, path, parent=-1, one=False):
         #print 'jsondb.path', path
         paths = self.break_path(path) if '.' in path[2:] else [path[2:]]
         c = self.cursor or self.get_cursor()
 
-        parent_ids = [node_id]
+        parent_ids = [parent]
 
         with self.conn:
             for i, expr in enumerate(paths[:-1]):
@@ -376,7 +387,7 @@ cdef class JsonDB:
                     new_parent_ids += ids
                 parent_ids = new_parent_ids
                 if not parent_ids:
-                    return []
+                    return
         
             #print paths[-1]
             expr = paths[-1]
@@ -385,11 +396,17 @@ cdef class JsonDB:
             else:
                 name, cond, extra, order, reverse = expr, '', '', 'asc', False
             #print name, cond, extra, order, reverse
-            rslt = sum(([Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])
-            rslt = reversed(rslt) if reverse else rslt
-            if one:
-                return rslt[0] if rslt else None
-            return rslt
+            if reverse:
+                for x in reversed(sum(([Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])):
+                    yield x
+                return
+
+            for parent_id in parent_ids:
+                for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra):
+                    rslt = Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
+                    yield rslt
+                    if one:
+                        return
 
     def update_link(self, rowid, link=None):
         c = self.cursor or self.get_cursor()
@@ -407,6 +424,7 @@ cdef class JsonDB:
     def get_dict_items(self, parent_id, value, cond='', order='asc', extra=''):
         c = self.cursor or self.get_cursor()
         
+        print 'p=%s,v=%s' % (parent_id, value)
         rows = c.execute(SQL_SELECT_DICT_ITEMS + ' limit 1', (parent_id, value))
         for row in rows:
             #print 'row', row
@@ -448,7 +466,6 @@ cdef class JsonDB:
         elif _type in (LIST, DICT):
             func = node.update if _type == DICT else node.append
             for child in self.get_children(row['id']):
-                #print 'add child', child
                 func(self.build_node(child))
 
         elif _type == STR:

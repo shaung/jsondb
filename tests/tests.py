@@ -14,7 +14,7 @@ if __name__ == '__main__':
     print '-'*40
     print 'test string'
     db = JsonDB.create('foo.db', root_type=STR, value='hello world!')
-    #print 'dumps', db.dumps()
+    print db.dumprows()
     db.close()
     db = JsonDB.load('foo.db')
     assert db.dumps() == 'hello world!'
@@ -33,9 +33,11 @@ if __name__ == '__main__':
     print'test list'
     db = JsonDB.create('bar.db', root_type=LIST)
     db.feed('hello')
+    print '1'
     db.feed('world!')
+    print '2'
     db.feed([1, 2])
-    #print 'dumps', db.dumps()
+    print 'dumps', db.dumps()
     db.close()
     db = JsonDB.load('bar.db')
     #print db.dumps()
