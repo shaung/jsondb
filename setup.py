@@ -53,6 +53,7 @@ setup(
     install_requires=requires,
     packages=[
         'jsondb',
+        'jsondb.backends',
     ],
     cmdclass=cmdclass,
     ext_modules=ext_modules,

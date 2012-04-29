@@ -3,6 +3,7 @@
 try:
     from _jsondb import *
 except:
-    pass
+    raise
+    #pass
 
 __version__ = '0.1'

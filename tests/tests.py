@@ -7,6 +7,8 @@
     Tests for jsondb.
 """
 
+import sys
+sys.path.append('/usr/local/lib/python2.6/dist-packages')
 from jsondb import *
 
 if __name__ == '__main__':
@@ -47,7 +49,7 @@ if __name__ == '__main__':
 
     if not os.path.exists('2.db'):
         db = JsonDB.from_file('2.db', '2.json')
-        db.build_index()
+        #db.build_index()
         db.close()
     db = JsonDB.load('2.db')
     rslts = db.xpath('$.Project.Obj')
@@ -97,7 +99,7 @@ if __name__ == '__main__':
     print'test from file'
     if not os.path.exists('10.db'):
         db = JsonDB.from_file('10.db', '10.json')
-        db.build_index()
+        #db.build_index()
         db.close()
     db = JsonDB.load('10.db')
     #print 'dumps', db.dumps()

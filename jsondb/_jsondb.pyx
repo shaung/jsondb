@@ -13,62 +13,17 @@
 import os
 import tempfile
 from collections import namedtuple
-import sqlite3
-import simplejson
-import re
-import types
 
+try:
+    import simplejson as json
+except:
+    import json
+
+import re
+from constants import *
+import backends
 
 __version__  = '0.1'
-
-
-(INT, FLOAT, STR, UNICODE, BOOL, NULLTYPE, LIST, DICT, KEY) = DATA_TYPES = range(9)
-DATA_INITIAL = {
-    INT     : 0,
-    FLOAT   : 0.0,
-    STR     : '',
-    UNICODE : u'',
-    BOOL    : False,
-    NULLTYPE    : None,
-    LIST    : [],
-    DICT    : {},
-    KEY     : '',
-}
-
-DATA_TYPE_NAME = {
-    INT     : 'INT',
-    FLOAT   : 'FLOAT',
-    STR     : 'STR',
-    UNICODE : 'UNICODE',
-    BOOL    : 'BOOL',
-    NULLTYPE    : 'NULLTYPE',
-    LIST    : 'LIST',
-    DICT    : 'DICT',
-    KEY     : 'KEY',
-}
-
-TYPE_MAP = {
-    types.IntType     : INT,
-    types.FloatType   : FLOAT,
-    types.StringType  : STR,
-    types.UnicodeType : UNICODE,
-    types.BooleanType : BOOL,
-    types.NoneType    : NULLTYPE,
-    types.ListType    : LIST,
-    types.DictType    : DICT,
-}
-
-SQL_INSERT_ROOT = "insert into jsondata values(-1, -2, ?, ?, null)"
-SQL_INSERT = "insert into jsondata values(null, ?, ?, ?, null)"
-SQL_UPDATE_LINK = "update jsondata set link = ? where id = ?"
-SQL_UPDATE_VALUE = "update jsondata set value = ? where id = ?"
-
-SQL_SELECT_DICT_ITEMS = "select id, type, value, link from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
-
-SQL_SELECT_CHILDREN = "select id, type, value, link from jsondata where parent = ? order by id asc"
-SQL_SELECT_CHILDREN_COND = "select t.id, t.type, t.value, t.link from jsondata t where t.parent = ? %s order by t.id %s %s"
-
-SQL_SELECT = "select * from jsondata where id = ?"
 
 
 class Error(Exception):
@@ -79,134 +34,66 @@ class UnsupportedTypeError(Error):
     pass
 
 
-def get_initial_data(_type):
-    if _type == NULLTYPE:
-        return None
-    cls = DATA_INITIAL[_type].__class__
-    return cls.__new__(cls)
-
-
-from functools import wraps
-import time
-
-
 Result = namedtuple('Result', ('id', 'value', 'link'))
 
-class JsonDB(object):
-    def __init__(self, filepath=None, link_key=None):
-        self.conn = None
-        self.cursor = None
-        if not filepath:
-            fd, filepath = tempfile.mkstemp(suffix='.jsondb')
-        self.dbpath = os.path.normpath(filepath)
+#def class JsonDB(object):
+cdef class JsonDB:
+    cdef public backend
+    cdef public link_key
+
+    def __init__(self,  backend, link_key=None):
+        #self.conn = None
+        #self.cursor = None
+        self.backend = backend
+        assert self.backend is not None
         self.link_key = link_key or '@__link__'
 
     def get_cursor(self):
-        if not self.cursor or not self.conn:
-            conn = self.conn or self.get_connection()
-            try:
-                self.cursor.close()
-            except:
-                pass
-            self.cursor= conn.cursor()
-        return self.cursor
-
-    def get_connection(self, force=False):
-        if force or not self.conn:
-            try:
-                self.conn.close()
-            except:
-                pass
-
-            self.conn = sqlite3.connect(self.dbpath)
-            self.conn.row_factory = sqlite3.Row
-            self.conn.text_factory = str
-            self.conn.execute('PRAGMA encoding = "UTF-8";')
-            self.conn.execute('PRAGMA foreign_keys = ON;')
-            self.conn.execute('PRAGMA synchronous = OFF;')
-            self.conn.execute('PRAGMA page_size = 8192;')
-            self.conn.execute('PRAGMA automatic_index = 1;')
-            self.conn.execute('PRAGMA temp_store = MEMORY;')
-            self.conn.execute('PRAGMA journal_mode = MEMORY;')
-
-        return self.conn
-
-    def create_tables(self):
-        conn = self.get_connection()
-
-        # create tables
-        conn.execute("""create table if not exists jsondata
-        (id     integer primary key,
-         parent integer,
-         type   integer,
-         value  blob,
-         link   text
-        )""")
-
-        conn.execute("create index if not exists jsondata_idx_composite on jsondata (parent, type)")
-        #conn.execute("create index if not exists jsondata_idx_value on jsondata (value)")
-        #conn.execute("create index if not exists jsondata_idx_type on jsondata (type asc)")
- 
-        conn.commit()
-
-    def build_index(self):
-        conn = self.get_connection()
-        #conn.execute("create index if not exists jsondata_idx_parent on jsondata (parent asc)")
-        #conn.execute("create index if not exists jsondata_idx_type on jsondata (type asc)")
-        #conn.execute("create index if not exists jsondata_idx_value on jsondata (parent, value)")
-        conn.execute("analyze")
-        conn.commit()
-
-    def _get_hash_id(self, name):
-        c = self.cursor or self.get_cursor()
-        c.execute('''select max(id) as max_id from jsondata
-        ''')
-        max_id = c.fetchone()['max_id']
-        return max_id + 1 if max_id else 1
+        return self.backend.get_cursor()
 
     @classmethod
     def load(cls, path, **kws):
-        self = cls(path, **kws)
+        # TODO: path -> connstr
+        _backend = backends.create('sqlite3', filepath=path, overwrite=False)
+        self = cls(backend=_backend, link_key='')
         return self
 
     @classmethod
-    def create(cls, path=None, root_type=DICT, value=None, overwrite=True, link_key=None):
-        self = cls(path, link_key=link_key)
-        if overwrite:
-            try:
-                conn = self.conn or self.get_connection()
-                conn.execute('drop table jsondata')
-            except sqlite3.OperationalError:
-                pass
+    def create(cls, path=None, root_type=DICT, value=None, overwrite=True, link_key=None, backend_name='sqlite3'):
+        if not path:
+            fd, path = tempfile.mkstemp(suffix='.jsondb')
+        dbpath = os.path.normpath(path)
+        _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
+        self = cls(backend=_backend, link_key=link_key)
 
-        self.create_tables()
-
-        if root_type == BOOL:
-            value = int(value)
-        elif root_type == INT:
+        if root_type in (BOOL, INT):
             value = int(value)
         elif root_type == FLOAT:
             value = float(value)
 
-        c = self.cursor or self.get_cursor()
-        conn = self.conn
-        c.execute(SQL_INSERT_ROOT, (root_type, value))
-        conn.commit()
+        self.backend.insert_root((root_type, value))
+        self.commit()
 
         return self
 
     def set_value(self, id, value):
+        pass
+        """
         c = self.cursor or self.get_cursor()
         c.execute(SQL_UPDATE_VALUE, (value, id))
+        """
 
     def store(self, data, parent=-1):
+        pass
+        """
         c = self.cursor or self.get_cursor()
 
         _type = TYPE_MAP.get(type(data))
 
-        c.execute(SQL_INSERT, (parent, _type, simplejson.dumps(data),))
+        c.execute(SQL_INSERT, (parent, _type, json.dumps(data),))
 
         return c.lastrowid
+        """
  
     def feed(self, data, parent=-1):
         """Append data to the specified parent.
@@ -218,13 +105,10 @@ class JsonDB(object):
         * each_child.id when appending a list to a list
         """
         id_list, pending_list = self._feed(data, parent)
-        c = self.cursor or self.get_cursor()
-        c.executemany(SQL_INSERT, pending_list)
+        self.backend.batch_insert(pending_list)
         return id_list
 
     def _feed(self, data, parent_id=-1):
-        c = self.cursor or self.get_cursor()
-
         parent = self.get_row(parent_id)
         parent_type = parent['type']
 
@@ -233,20 +117,16 @@ class JsonDB(object):
  
         _type = TYPE_MAP.get(type(data))
 
-        #print data, DATA_TYPE_NAME[_type], DATA_TYPE_NAME[parent_type]
         if _type == DICT:
             if parent_type == DICT:
                 hash_id = parent_id
             else:
-                c.execute(SQL_INSERT, (parent_id, _type, '',))
-                hash_id = c.lastrowid
+                hash_id = self.backend.insert((parent_id, _type, '',))
             for key, value in data.iteritems():
                 if key == self.link_key:
-                    c.execute(SQL_UPDATE_LINK, (value, hash_id))
+                    self.backend.update_link((value, hash_id))
                     continue
-                c.execute(SQL_INSERT, (hash_id, KEY, key,))
-                key_id = c.lastrowid
-                #print 'added dict item %s to %s' % (key_id, hash_id)
+                key_id = self.backend.insert((hash_id, KEY, key,))
                 _ids, _pendings = self._feed(value, key_id)
                 id_list += _ids
                 pending_list += _pendings
@@ -254,8 +134,7 @@ class JsonDB(object):
         elif _type == LIST:
             # TODO: need to distinguish *appending* from *merging* 
             #       now we always assume it's appending
-            c.execute(SQL_INSERT, (parent_id, _type, '',))
-            hash_id = c.lastrowid
+            hash_id = self.backend.insert((parent_id, _type, '',))
             id_list.append(hash_id)
             for x in data:
                 _ids, _pendings = self._feed(x, hash_id)
@@ -265,7 +144,8 @@ class JsonDB(object):
         else:
             #c.execute(SQL_INSERT, (parent_id, _type, data,))
             pending_list.append((parent_id, _type, data,))
-            id_list.append(c.lastrowid)
+            # TODO: what?
+            #id_list.append(c.lastrowid)
             #print 'added other item %s to %s' % (id_list[0], parent_id)
 
         return id_list, pending_list
@@ -367,11 +247,11 @@ class JsonDB(object):
     def xpath(self, path, parent=-1, one=False):
         #print 'jsondb.path', path
         paths = self.break_path(path) if '.' in path[2:] else [path[2:]]
-        c = self.cursor or self.get_cursor()
 
         parent_ids = [parent]
 
-        with self.conn:
+        # TODO
+        with self.backend.get_connection():
             for i, expr in enumerate(paths[:-1]):
                 if '[' in expr:
                     name, cond, extra, order, reverse = self._get_cond(expr)
@@ -409,54 +289,25 @@ class JsonDB(object):
                         return
 
     def update_link(self, rowid, link=None):
-        c = self.cursor or self.get_cursor()
-        c.execute('update jsondata set link = ? where id = ?', (link, rowid, ))
+        self.backend.update_link(rowid, link)
 
     def set_link_key(self, link_key):
         self.link_key = link_key
 
     def get_row(self, rowid):
-        c = self.cursor or self.get_cursor()
-        c.execute(SQL_SELECT, (rowid, ))
-        rslt = c.fetchone()
-        return rslt
+        return self.backend.get_row(rowid)
 
     def get_dict_items(self, parent_id, value, cond='', order='asc', extra=''):
-        c = self.cursor or self.get_cursor()
-        
-        print 'p=%s,v=%s' % (parent_id, value)
-        rows = c.execute(SQL_SELECT_DICT_ITEMS + ' limit 1', (parent_id, value))
-        for row in rows:
-            #print 'row', row
-            if row['type'] == LIST:
-                sql = SQL_SELECT_CHILDREN_COND % (cond, order, extra)
-                #print 'sql:%s' % sql
-                for item in c.execute(sql, (row['id'],)):
-                    yield item
-            else:
-                yield row
+        for row in self.backend.iget_dict_items(parent_id=parent_id, value=value, cond=cond, order=order, extra=extra):
+            yield row
 
     def get_children(self, parent_id, value=None, only_one=False):
-        c = self.cursor or self.get_cursor()
-
-        sql = SQL_SELECT_CHILDREN
-        paras = [parent_id]
-        if value is not None:
-            sql += ' and value = ? '
-            paras.append(value)
-
-        c.execute(sql, tuple(paras))
-        if only_one:
-            row = c.fetchone()
+        for row in self.backend.iget_children(parent_id, value=value, only_one=only_one):
             yield row
-        else:
-            for row in  c.fetchall():
-                yield row
 
     def build_node(self, row):
         node = get_initial_data(row['type'])
         _type = row['type']
-        #print 'buiding node', row['id'], type(node)
 
         if _type == KEY:
             for child in self.get_children(row['id']):
@@ -483,39 +334,37 @@ class JsonDB(object):
         elif _type == FLOAT:
             node = float(row['value'])
 
-        elif _type == NULLTYPE:
+        elif _type == NIL:
             node = None
 
         return node
 
     @classmethod
     def from_file(cls, dbpath, filepath, **kws):
-        json = simplejson.load(open(filepath))
-        _type = TYPE_MAP.get(type(json))
+        data = json.load(open(filepath))
+        _type = TYPE_MAP.get(type(data))
         self = cls.create(dbpath, root_type=_type, **kws)
-        with self.conn:
-            self.feed(json)
+        with self.backend.get_connection():
+            self.feed(data)
+            self.commit()
         return self
 
     def dumps(self):
         root = self.get_row(-1)
-        return self.build_node(root)
+        return self.build_node(root) if root else ''
+
+    def dump(self, filepath):
+        with open(filepath, 'wb') as f:
+            root = self.get_row(-1)
+            rslt = self.build_node(root) if root else ''
+            f.write(repr(rslt))
 
     def dumprows(self):
-        c = self.cursor or self.get_cursor()
-        c.execute('select * from jsondata order by id')
-        fmt = '{0:>12} {1:>12} {2:12} {3:12}'
-        print fmt.format('id', 'parent', 'type', 'value')
-        for row in c.fetchall():
-            print fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], row['value'])
-
-    def close(self):
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.commit()
-            self.conn.close()
+        for row in self.backend.dumprows():
+            print row
 
     def commit(self):
-        self.conn.commit()
+        self.backend.commit()
 
+    def close(self):
+        self.backend.close()
