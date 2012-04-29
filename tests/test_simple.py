@@ -34,6 +34,7 @@ def test_list():
     db.feed([1, 2])
     db.close()
     db = JsonDB.load('bar.db')
+    print db.dumps()
     assert db.dumps() == ['hello', 'world!', [1.0, 2.0]]
 
 def test_list_merge():
@@ -86,9 +87,23 @@ def test_dict():
 
 
 def test_query():
-    db = JsonDB.from_file('bookstore.db', 'bookstore.json')
+    #db = JsonDB.from_file('bookstore.db', 'bookstore.json')
+    db = JsonDB.load('bookstore.db')
 
     rslt = [x.value for x in db.xpath('$.store.book[0].title')]
     assert rslt == ['Sayings of the Century']
 
 
+def test_large():
+    db = JsonDB.create('large.db', root_type=DICT)
+    for i in range(100000):
+        li = db.feed({str(i):{'value':str(i)}})
+
+    #db.dump('large.json')
+    db.close()
+
+    db = JsonDB.load('large.db')
+    assert [x.value for x in db.xpath('$.15.value')][0] == str(15)
+
+if __name__ == '__main__':
+    test_list()
