@@ -168,3 +168,8 @@ class Sqlite3Backend(BackendBase):
         max_id = c.fetchone()['max_id']
         return max_id + 1 if max_id else 1
 
+    def set_value(self, id, value):
+        c = self.cursor or self.get_cursor()
+        c.execute(SQL_UPDATE_VALUE, (value, id))
+
+
