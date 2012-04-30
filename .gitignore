@@ -1,2 +1,8 @@
+*.py[co]
+*.so
+*.log
+logs
 *.swp
-*.pyc
+build
+tests/*.db
+local
