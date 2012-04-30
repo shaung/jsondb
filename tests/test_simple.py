@@ -7,6 +7,7 @@
     Tests for jsondb.
 """
 
+import os
 from jsondb import *
 
 def test_string():
@@ -86,17 +87,64 @@ def test_dict():
     assert rslt == ['well!']
 
 
-def test_query():
-    #db = JsonDB.from_file('bookstore.db', 'bookstore.json')
-    db = JsonDB.load('bookstore.db')
+class TestQuery:
+    all_titles = ['Sayings of the Century', 'Sword of Honour', 'Moby Dick', 'The Lord of the Rings']
+    all_authors = ['Nigel Rees', 'Evelyn Waugh', 'Herman Melville', 'J. R. R. Tolkien']
 
-    rslt = [x.value for x in db.xpath('$.store.book[0].title')]
-    assert rslt == ['Sayings of the Century']
+    def setup(self):
+        self.dbpath = 'bookstore.db'
+        if os.path.exists(self.dbpath):
+            self.db = JsonDB.load(self.dbpath)
+        else:
+            self.db = JsonDB.from_file(self.dbpath, 'bookstore.json')
+
+    def teardown(self):
+        self.db.close()
+
+    def test_query_first(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[0].title')]
+        assert rslt == ['Sayings of the Century']
+
+    def test_query_range_all(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book.title')]
+        assert rslt == self.all_titles
+        rslt = [x.value for x in self.db.xpath('$.store.book[*].title')]
+        assert rslt == self.all_titles
+        rslt = [x.value for x in self.db.xpath('$.store.book[*].author')]
+        assert rslt == self.all_authors
+ 
+    def test_query_range_pm(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[1:-1].author')]
+        print rslt
+        assert rslt == self.all_authors[1:-1]
+
+    def test_query_range_pn(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[2:].author')]
+        print rslt, self.all_authors[2:]
+        assert rslt == self.all_authors[2:]
+
+    def test_query_range_mn(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[-2:].author')]
+        print rslt, self.all_authors[-2:]
+        assert rslt == self.all_authors[-2:]
+
+    def test_query_range_nm(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[:-1].author')]
+        assert rslt == self.all_authors[:-1]
+        rslt = [x.value for x in self.db.xpath('$.store.book[:-2].author')]
+        assert rslt == self.all_authors[:-2]
+
+    def test_query_range_mm(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[-2:-1].author')]
+        assert rslt == self.all_authors[-2:-1]
+        rslt = [x.value for x in self.db.xpath('$.store.book[-9:-2].author')]
+        print rslt, self.all_authors[-9:-2]
+        assert rslt == self.all_authors[-9:-2]
 
 
 def test_large():
     db = JsonDB.create('large.db', root_type=DICT)
-    for i in range(100000):
+    for i in range(1000):
         li = db.feed({str(i):{'value':str(i)}})
 
     #db.dump('large.json')
@@ -106,4 +154,4 @@ def test_large():
     assert [x.value for x in db.xpath('$.15.value')][0] == str(15)
 
 if __name__ == '__main__':
-    test_list()
+    pass
