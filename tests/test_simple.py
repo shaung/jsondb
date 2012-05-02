@@ -90,6 +90,7 @@ def test_dict():
 class TestQuery:
     all_titles = ['Sayings of the Century', 'Sword of Honour', 'Moby Dick', 'The Lord of the Rings']
     all_authors = ['Nigel Rees', 'Evelyn Waugh', 'Herman Melville', 'J. R. R. Tolkien']
+    all_prices = [8.95, 12.99, 8.99, 22.99, 19.95]
 
     def setup(self):
         self.dbpath = 'bookstore.db'
@@ -101,9 +102,15 @@ class TestQuery:
     def teardown(self):
         self.db.close()
 
-    def test_query_first(self):
+    def test_condition(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[?(@.author="Evelyn Waugh")].title')]
+        assert rslt == ['Sword of Honour']
+
+    def test_query_position(self):
         rslt = [x.value for x in self.db.xpath('$.store.book[0].title')]
-        assert rslt == ['Sayings of the Century']
+        assert rslt == self.all_titles[0:1]
+        rslt = [x.value for x in self.db.xpath('$.store.book[2].title')]
+        assert rslt == self.all_titles[2:3]
 
     def test_query_range_all(self):
         rslt = [x.value for x in self.db.xpath('$.store.book.title')]
@@ -141,6 +148,26 @@ class TestQuery:
         print rslt, self.all_authors[-9:-2]
         assert rslt == self.all_authors[-9:-2]
 
+    def test_query_range_union(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[1, 2, -1].author')]
+        assert rslt == self.all_authors[:2] + self.all_authors[-1]
+
+    def test_query_slicing_step(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[-4:-1:-1].author')]
+        assert rslt == self.all_authors[-4:-1:-1]
+        rslt = [x.value for x in self.db.xpath('$.store.book[-4:-1:-2].author')]
+        assert rslt == self.all_authors[-4:-1:-2]
+
+    def test_query_recursive_descent(self):
+        rslt = [x.value for x in self.db.xpath('$.store..price')]
+        assert rslt == self.all_prices
+        rslt = [x.value for x in self.db.xpath('$..price')]
+        assert rslt == self.all_prices
+
+    def test_query_exists(self):
+        rslt = [x.value for x in self.db.xpath('$.store.book[?(@.isbn)].author')]
+        assert rslt == self.all_authors[-2:]
+ 
 
 def test_large():
     db = JsonDB.create('large.db', root_type=DICT)
