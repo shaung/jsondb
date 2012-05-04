@@ -9,7 +9,8 @@
 import os
 import sqlite3
 from jsondb.backends.base import BackendBase
-from jsondb.constants import KEY, DATA_TYPE_NAME, LIST
+from jsondb.constants import *
+from jsondb.jsonquery import parse
 
 
 SQL_INSERT_ROOT         = "insert into jsondata values(-1, -2, ?, ?, null)"
@@ -23,7 +24,6 @@ SQL_SELECT = "select * from jsondata where id = ?"
 
 
 class Sqlite3Backend(BackendBase):
-#cdef class Sqlite3Backend:
     def __init__(self, filepath, *args, **kws):
         self.conn = None
         self.cursor = None
@@ -79,7 +79,30 @@ class Sqlite3Backend(BackendBase):
             self.conn.execute('PRAGMA page_size = 8192;')
             self.conn.execute('PRAGMA automatic_index = 1;')
             self.conn.execute('PRAGMA temp_store = MEMORY;')
-            #self.conn.execute('PRAGMA journal_mode = MEMORY;')
+            self.conn.execute('PRAGMA journal_mode = MEMORY;')
+
+            def get_ancestors(id):
+                result = [id]
+                while id > -2:
+                    row = self.conn.execute('select parent from jsondata where id = ?', (id,)).fetchone()
+                    id = row['parent']
+                    result.append(id)
+                return result
+
+            self.conn.create_function('get_ancestors', 1, get_ancestors)
+
+            def ancestors_in(id, candicates):
+                # FIXME: Find a better way to do this.
+                candicates = eval(candicates)
+                print 'id', id, 'candicates', candicates
+                while id > -2:
+                    if id in candicates:
+                        return True
+                    row = self.conn.execute('select parent from jsondata where id = ?', (id,)).fetchone()
+                    id = row['parent']
+                return False
+
+            self.conn.create_function('ancestors_in', 2, ancestors_in)
 
         return self.conn
 
@@ -172,4 +195,113 @@ class Sqlite3Backend(BackendBase):
         c = self.cursor or self.get_cursor()
         c.execute(SQL_UPDATE_VALUE, (value, id))
 
+    def select(self, stmt, variables=()):
+        print stmt, variables
+        c = self.cursor or self.get_cursor()
+        c.execute(stmt, variables)
+        return c.fetchall()
+
+    def jsonpath(self, path, parent=-1, one=False):
+        parent_ids = [parent]
+        funcs = {
+            'predicate' : parse_predicate,
+            'union'     : parse_union,
+        }
+
+        ast = parse(path)
+        sqlstmt = ''
+        for idx, node in enumerate(ast['jsonpath']):
+            is_last = (idx == len(ast['jsonpath']) - 1)
+            if is_last:
+                select_cols = 'select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t'
+            else:
+                select_cols = 'select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t'
+
+            # The approach here:
+            # Select the rows based on name / axis.
+            # Then apply filters to make the id set smaller.
+            # Then select against their children.
+
+            print node
+            tag = node['tag']
+            name = tag.get('name', '')
+            axis = tag.get('axis', '.')
+            # if name and axis
+            # Now we are selecting rows that could become the ancient parents of the final results.
+            # If axis == '.', then we only need to find t where t.parent in (CURRENT_ID_SET)
+            # If axis == '..', then we must find all possible children.
+            #    If name == '', then we just need to find the direct chidren.
+            #    Otherwise, we need to find all children.
+            # If name == '', then we are selecting against all chidlren of every type.
+            # If predicate is provided, just append it to the where clause.
+            # If union is provided, they go to the limit/offset/orderby clause.
+            #    note: merge the result in python, not the sql.
+            if axis == '.':
+                if name:
+                    rows = self.select(select_cols + ' where t.parent in (select distinct id from jsondata where parent in (%s) and type = %s and value = "%s") order by id asc' % (','.join(map(str, parent_ids)), KEY, name))
+                else:
+                    # TODO: "$.*.author"
+                    rows = []
+            elif axis == '..':
+                if name:
+                    # We are looking for DICTS who has a key named "name"
+                    rows = self.select(select_cols + ' where t.parent in '
+                                                    '(select id from jsondata tk where tk.type = ? and tk.value = ? and '
+                                                    'exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))', (KEY, name, DICT, repr(parent_ids),))
+                else:
+                    # ..* is meaningless.
+                    # TODO: just ignore it for now.
+                    rows = []
+
+            def expand(row):
+                if row['type'] == LIST:
+                    return self.select(select_cols + ' where t.parent = %s' % row['id'])
+                else:
+                    return [row]
+            rows = sum((expand(row) for row in rows), [])
+
+            rowids = [row['id'] for row in rows]
+            print 'rowids', rowids
+            if not rowids:
+                # No matches
+                break
+
+            for _filter in node.get('filter_list', []):
+                func = funcs.get(_filter['type'])
+                rowids = func(_filter, rowids)
+            parent_ids = rowids
+
+        for row in rows:
+            print 'row', row, row.keys(), [x for x in row]
+            yield Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
+            if one: break
+
+
+def parse_predicate(_filter, rowids):
+    result = rowids
+    # The parent is a LIST or DICT
+    # when LIST, the condition applies to each of it's children
+    # when DICT, applies to itself
+    return result
+
+
+def parse_union(_filter, rowids):
+    result = []
+    for union in _filter['value']:
+        _type = union['type']
+        if _type == 'index':
+            index = int(union['value'])
+            try:
+                if index not in rowids:
+                    result.append(rowids[index])
+            except IndexError:
+                pass
+        elif _type == 'slicing':
+            start = union.get('start', None)
+            end = union.get('end', None)
+            step = union.get('step', None)
+            _slice = [(int(x) if x else None) for x in (start, end, step)]
+            result += [id for id in rowids[slice(*_slice)] if id not in result]
+ 
+    return result
 

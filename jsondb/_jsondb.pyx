@@ -11,17 +11,14 @@
 
 import os
 import tempfile
-from collections import namedtuple
+import re
 
 try:
     import simplejson as json
 except:
     import json
 
-import re
-
 from constants import *
-import jsonpath
 import backends
 
 __version__  = '0.1'
@@ -35,7 +32,9 @@ class UnsupportedTypeError(Error):
     pass
 
 
-Result = namedtuple('Result', ('id', 'value', 'link'))
+class IllegalTypeError(Error):
+    pass
+
 
 
 cdef class JsonDB:
@@ -113,6 +112,7 @@ cdef class JsonDB:
         * value.id when appending {key : value} to a dict
         * each_child.id when appending a list to a list
         """
+        # TODO: should be in a transaction
         id_list, pending_list = self._feed(data, parent)
         self.backend.batch_insert(pending_list)
         return id_list
@@ -129,8 +129,12 @@ cdef class JsonDB:
         if _type == DICT:
             if parent_type == DICT:
                 hash_id = parent_id
-            else:
+            elif parent_type in (LIST, KEY):
                 hash_id = self.backend.insert((parent_id, _type, '',))
+            elif parent_id != -1:
+                print parent_id, parent_type
+                raise IllegalTypeError, 'Parent node should be either DICT or LIST.'
+
             for key, value in data.iteritems():
                 if key == self.link_key:
                     self.backend.update_link((value, hash_id))
@@ -143,63 +147,23 @@ cdef class JsonDB:
         elif _type == LIST:
             # TODO: need to distinguish *appending* from *merging* 
             #       now we always assume it's appending
+            # TODO: The value field of LIST type is unused now.
+            #       can be used to store the length.
             hash_id = self.backend.insert((parent_id, _type, '',))
             id_list.append(hash_id)
             for x in data:
                 _ids, _pendings = self._feed(x, hash_id)
                 id_list += _ids
                 pending_list += _pendings
-                #print 'added list item to %s' % (hash_id)
         else:
-            #c.execute(SQL_INSERT, (parent_id, _type, data,))
             pending_list.append((parent_id, _type, data,))
-            # TODO: what?
-            #id_list.append(c.lastrowid)
-            #print 'added other item %s to %s' % (id_list[0], parent_id)
 
         return id_list, pending_list
 
-    def xpath(self, path, parent=-1, one=False):
-        paths = jsonpath._break_path(path) if '.' in path[2:] else [path[2:]]
+    def query(self, path, parent=-1, one=False):
+        return self.backend.jsonpath(path=path, parent=parent, one=one)
 
-        parent_ids = [parent]
-
-        # TODO
-        with self.backend.get_connection():
-            for i, expr in enumerate(paths[:-1]):
-                if '[' in expr:
-                    name, cond, extra, order, reverse = jsonpath._get_cond(expr)
-                else:
-                    name, cond, extra, order, reverse = expr, '', '', 'asc', False
-                #print i, name, cond, extra, order, reverse
-                new_parent_ids = []
-                for parent_id in parent_ids:
-                    row = self.get_dict_items(parent_id, name, cond=cond, order=order, extra=extra)
-                    ids = [r['id'] for r in row]
-                    if reverse:
-                        ids = reversed(ids)
-                    new_parent_ids += ids
-                parent_ids = new_parent_ids
-                if not parent_ids:
-                    return
-        
-            expr = paths[-1]
-            if '[' in expr:
-                name, cond, extra, order, reverse = jsonpath._get_cond(expr)
-            else:
-                name, cond, extra, order, reverse = expr, '', '', 'asc', False
-
-            if reverse:
-                for x in reversed(sum(([Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link']) for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra) if row] for parent_id in parent_ids), [])):
-                    yield x
-                return
-
-            for parent_id in parent_ids:
-                for row in self.get_dict_items(parent_id, value=name, cond=cond, order=order, extra=extra):
-                    rslt = Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
-                    yield rslt
-                    if one:
-                        return
+    xpath = query
 
     def build_node(self, row):
         node = get_initial_data(row['type'])

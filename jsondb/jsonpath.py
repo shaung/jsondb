@@ -4,6 +4,7 @@ import re
 
 from constants import KEY
 
+
 def _break_path(path):
     # here we ignore the '..' expr for now
     path = path[2:]
@@ -20,12 +21,12 @@ def _break_path(path):
         return conditions[int(m.group(1))]
     return [re.sub(r'__([0-9]*)__', recover, g) for g in groups]
 
+
 def _get_cond(expr):
     cond = ''
     extra = ''
     order = 'asc'
     reverse = False
-    #print expr
 
     if expr[-1] != ']':
         name = expr
@@ -40,7 +41,7 @@ def _get_cond(expr):
         def f(m):
             item = m.group(1)
             condition = m.group(2)
-            # TODO: quick dirty adhoc solution
+            # FIXME: quick dirty adhoc solution
             condition = condition.replace('True', '1').replace('False', '0').replace('"', "'")
             return """ exists (select tv.id from jsondata tv
                         where tv.parent in (select tk.id from jsondata tk 
