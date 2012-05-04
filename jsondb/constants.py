@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import types
+from collections import namedtuple
 
 
 (INT, FLOAT, STR, UNICODE, BOOL, NIL, LIST, DICT, KEY) = DATA_TYPES = range(9)
@@ -44,4 +45,7 @@ def get_initial_data(_type):
         return None
     cls = DATA_INITIAL[_type].__class__
     return cls.__new__(cls)
+
+
+Result = namedtuple('Result', ('id', 'value', 'link'))
 
