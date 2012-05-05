@@ -19,7 +19,7 @@ def not_op():           return re.compile(r'not', re.I)
 def not_expr():         return 0, not_op, in_expr
 def in_op():            return re.compile(r'in', re.I)
 def in_expr():          return cmp_expr, -1, (in_op, '(', expr_list, ')')
-def cmp_op():           return re.compile(r"\=\=|\!\=|\<\=|\<|\>\=|\>")
+def cmp_op():           return re.compile(r"\=+|\!\=|\<\=|\<|\>\=|\>")
 def cmp_expr():         return like_expr, -1, (cmp_op, cmp_expr)
 def like_op():          return re.compile(r'like', re.I)
 def like_expr():        return add_expr, -1, (like_op, literal)
@@ -94,7 +94,7 @@ def cst2json(cst):
             result['type'] = name
 
         elif name == 'child':
-            result = {name: cst2json(body[0])}
+            result = {name: cst2json(body)}
 
         elif name == 'slicing':
             result = {'type': name}
