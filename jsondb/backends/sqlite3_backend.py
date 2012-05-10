@@ -7,6 +7,7 @@
 """
 
 import os
+import re
 import sqlite3
 from jsondb.backends.base import BackendBase
 from jsondb.constants import *
@@ -204,8 +205,8 @@ class Sqlite3Backend(BackendBase):
     def jsonpath(self, path, parent=-1, one=False):
         parent_ids = [parent]
         funcs = {
-            'predicate' : parse_predicate,
-            'union'     : parse_union,
+            'predicate' : self.parse_predicate,
+            'union'     : self.parse_union,
         }
 
         ast = parse(path)
@@ -277,31 +278,137 @@ class Sqlite3Backend(BackendBase):
             if one: break
 
 
-def parse_predicate(_filter, rowids):
-    result = rowids
-    # The parent is a LIST or DICT
-    # when LIST, the condition applies to each of it's children
-    # when DICT, applies to itself
-    return result
+    def parse_predicate(self, _filter, rowids):
+        # Evaluate the expr
+        # The parent is a LIST or DICT
+        # when LIST, the condition applies to each of it's children
+        # when DICT, applies to itself
+
+        result = rowids
+        parse_atom.children = {}
+        expr = _filter['expr']
+        _type, condition = parse_expr(expr)
+        if _type == 'child':
+            condition += ' is not NULL '
+
+        stmt = ''
+        tables = {}
+        for key, childnodes in parse_atom.children.items():
+            # TODO: Check the child exists and passes the condition
+            condition = re.sub(key, '%s.type > 0 and %s.value' % (key, key), condition)
+            subquery = ''
+            for i, node in enumerate(childnodes):
+                is_last = (i == len(childnodes) - 1)
+                if is_last:
+                    cols = 'id, type, value'
+                else:
+                    cols = 'id'
+                tag = node['tag']
+                name = tag.get('name', '')
+                axis = tag.get('axis', '.')
+                alias = '%s%s' % (key, i)
+                if name and axis == '.':
+                    _query = 'select %s from jsondata where parent = (select id from jsondata where type = 8 and parent = %s and value = %s)'
+                    if not subquery:
+                        parent =  't.id'
+                    else:
+                        parent = '(%s)' % subquery
+                    subquery = _query % (cols, parent, '"%s"' % name)
+                else:
+                    # TODO
+                    pass
+            subquery += ' union all select -9, -1, NULL'
+            tables[key] = subquery
+
+        clause = 'select %s from %s where (%s) and (%s)' % ('*', ', '.join('(%s) %s' % (v, k) for k, v in tables.items()), condition, 
+                    ' or '.join(['%s.type > 0' % k for k in tables]))
+        stmt = 'select t.id from jsondata t where t.id in %s and exists (%s)' % (repr(tuple(rowids)), clause)
+
+        print 'stmt', stmt
+        print 'predicate stmt', condition
+        rows = self.select(stmt)
+        result = [row['id'] for row in rows]
+
+        return result
+
+    def parse_union(self, _filter, rowids):
+        result = []
+        for union in _filter['value']:
+            _type = union['type']
+            if _type == 'index':
+                index = int(union['value'])
+                try:
+                    if index not in rowids:
+                        result.append(rowids[index])
+                except IndexError:
+                    pass
+            elif _type == 'slicing':
+                start = union.get('start', None)
+                end = union.get('end', None)
+                step = union.get('step', None)
+                _slice = [(int(x) if x else None) for x in (start, end, step)]
+                result += [id for id in rowids[slice(*_slice)] if id not in result]
+     
+        return result
 
 
-def parse_union(_filter, rowids):
-    result = []
-    for union in _filter['value']:
-        _type = union['type']
-        if _type == 'index':
-            index = int(union['value'])
-            try:
-                if index not in rowids:
-                    result.append(rowids[index])
-            except IndexError:
-                pass
-        elif _type == 'slicing':
-            start = union.get('start', None)
-            end = union.get('end', None)
-            step = union.get('step', None)
-            _slice = [(int(x) if x else None) for x in (start, end, step)]
-            result += [id for id in rowids[slice(*_slice)] if id not in result]
- 
-    return result
+def parse_atom(atom):
+    _type = atom.get('type')
+    _value = atom.get('value')
+    if _type in ('number', 'literal'):
+        return _type, atom.get('value')
+    elif _type == 'boolean':
+        return _type, _value == 'True' and 1 or 0
+    elif _type == 'child':
+        key = '__t%s__' % len(parse_atom.children)
+        parse_atom.children[key] = _value
+        return _type, key
+
+    elif _type == 'func':
+        # TODO:
+        return _type, ''
+    elif _type == 'expr':
+        return _type, ' (%s) ' % parse_expr(_value)[-1]
+    else:
+        raise 'impossible'
+
+parse_atom.children = {}
+
+def parse_expr(expr):
+    result = ''
+
+    if not expr:
+        return None, ''
+
+    _type = expr.get('type')
+    print 'expr', expr
+    if not _type:
+        if 'atom' in expr:
+            atom = expr.get('atom')
+            return parse_atom(atom)
+        elif 'expr_list' in expr:
+            result = ' (%s)' % ','.join((parse_expr(x['expr'])[-1] for x in expr.get('expr_list', [])))
+
+    else:
+        left = expr.get('left')
+        right = expr.get('right')
+        op = expr.get('op')
+        fmt = '%s %s %s'
+        if op == 'or':
+            fmt = '(%s) %s (%s)'
+        lexprs = parse_expr(left)
+        if lexprs[0] == 'child' and op in ('and', 'or', 'not'):
+            lexpr = ' %s is not NULL ' % lexprs[1] 
+        else:
+            lexpr = lexprs[1]
+        rexprs = parse_expr(right)
+        if rexprs[0] == 'child' and op in ('and', 'or', 'not'):
+            rexpr = ' %s is not NULL ' % rexprs[1] 
+        else:
+            rexpr = rexprs[1]
+
+        result = fmt % (lexpr or 1, op, rexpr)
+        _type = op
+    return _type, result
+
 
