@@ -45,6 +45,9 @@ class Sqlite3Backend(BackendBase):
 
         super(Sqlite3Backend, self).__init__(*args, **kws)
 
+    def get_path(self):
+        return self.dbpath
+
     def create_tables(self):
         conn = self.get_connection()
 
