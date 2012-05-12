@@ -99,8 +99,11 @@ cdef class JsonDB:
 
         _type = TYPE_MAP.get(type(data))
         self = cls.create(dbpath, root_type=_type, **kws)
-        with self.backend.get_connection():
+        try:
             self.feed(data)
+        except:
+            self.rollback()
+        else:
             self.commit()
         return self
 
@@ -108,6 +111,7 @@ cdef class JsonDB:
         self.link_key = link_key
 
     def store(self, data, parent=-1):
+        # TODO: store raw json data into a node.
         pass
         """
         c = self.cursor or self.get_cursor()
@@ -177,6 +181,7 @@ cdef class JsonDB:
         return id_list, pending_list
 
     def query(self, path, parent=-1, one=False):
+        """Query the data"""
         rslt = self.backend.jsonpath(path=path, parent=parent, one=one)
         return QueryResult(rslt)
 
@@ -248,14 +253,14 @@ cdef class JsonDB:
     def get_row(self, rowid):
         return self.backend.get_row(rowid)
 
-    def get_dict_items(self, parent_id, value, cond='', order='asc', extra=''):
-        for row in self.backend.iget_dict_items(parent_id=parent_id, value=value, cond=cond, order=order, extra=extra):
-            yield row
-
     def get_children(self, parent_id, value=None, only_one=False):
-        for row in self.backend.iget_children(parent_id, value=value, only_one=only_one):
+        for row in self.backend.iter_children(parent_id, value=value, only_one=only_one):
             yield row
 
     def get_path(self):
         return self.backend.get_path()
+
+    # TODO: support index access
+    #       db[id] = value equals to
+    #       db.feed(value, id)
 

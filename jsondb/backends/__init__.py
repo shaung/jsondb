@@ -10,11 +10,11 @@ class Error(Exception):
     pass
 
 class NonAvailableError(Error):
-    err_desc = 'Not exists'
+    pass
 
 def create(name, *args, **kws):
     cls = mapping.get(name.lower(), None)
     if not cls:
-        raise NonAvailableError
+        raise NonAvailableError, name
     return cls(*args, **kws) if cls else None
 
