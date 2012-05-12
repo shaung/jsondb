@@ -36,6 +36,21 @@ class IllegalTypeError(Error):
     pass
 
 
+class QueryResult(object):
+    def __init__(self, seq):
+        self.seq = seq
+
+    def getone(self):
+        return next(self.seq)
+
+    def values(self):
+        for row in self.seq:
+            yield row.value
+
+    def __iter__(self):
+        for row in self.seq:
+            yield row
+
 
 cdef class JsonDB:
     cdef public backend
@@ -161,7 +176,8 @@ cdef class JsonDB:
         return id_list, pending_list
 
     def query(self, path, parent=-1, one=False):
-        return self.backend.jsonpath(path=path, parent=parent, one=one)
+        rslt = self.backend.jsonpath(path=path, parent=parent, one=one)
+        return QueryResult(rslt)
 
     xpath = query
 
@@ -238,4 +254,7 @@ cdef class JsonDB:
     def get_children(self, parent_id, value=None, only_one=False):
         for row in self.backend.iget_children(parent_id, value=value, only_one=only_one):
             yield row
+
+    def get_path(self):
+        return self.backend.get_path()
 
