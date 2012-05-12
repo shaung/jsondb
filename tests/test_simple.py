@@ -11,23 +11,37 @@ import os
 from jsondb import *
 from nose.tools import eq_
 
-def test_string():
-    """test string"""
-    db = JsonDB.create('foo.db', root_type=STR, value='hello world!')
-    db.close()
-    db = JsonDB.load('foo.db')
-    eq_(db.dumps(), 'hello world!')
+class TestSimpleTypes:
+    def test_string(self):
+        self.eq(STR, 'Hello world!')
+        self.eq(UNICODE, u'Hello world!')
 
-def test_bool():
-    """test bool"""
-    db = JsonDB.create('bar.db', root_type=BOOL, value=True)
-    eq_(db.dumps(), True)
+    def test_bool(self):
+        self.eq(BOOL, True)
+        self.eq(BOOL, False)
+        self.eq(BOOL, 1)
+        self.eq(BOOL, 0)
 
-def test_float():
-    """test float"""
-    db = JsonDB.create('bar.db', root_type=FLOAT, value=1.2)
-    eq_(db.dumps(), 1.2)
+    def test_int(self):
+        for i in xrange(100):
+            self.eq(INT, i)
 
+    def test_float(self):
+        self.eq(FLOAT, 1.2)
+        self.eq(FLOAT, 0.99999)
+        self.eq(FLOAT, 0.00000000000000000001)
+
+    def test_nil(self):
+        self.eq(NIL, None)
+
+    def eq(self, root_type, value):
+        db = JsonDB.create(root_type=root_type, value=value)
+        dbpath = db.get_path()
+        db.close()
+        db = JsonDB.load(dbpath)
+        eq_(db.dumps(), value)
+
+ 
 def test_list():
     """test list"""
     db = JsonDB.create('bar.db', root_type=LIST)
@@ -53,7 +67,7 @@ def test_list_merge():
     db = JsonDB.load('bar.db')
 
     db.dumprows()
-    rslt = [x.value for x in db.xpath('$.root')]
+    rslt = [x.value for x in db.query('$.root')]
     eq_(rslt, data)
 
 def test_dict():
@@ -74,16 +88,16 @@ def test_dict():
     db.close()
     db = JsonDB.load('bar.db')
     for i in range(len(files)):
-        for rslt in db.xpath('$.name[-1].files[%s]' % i):
+        for rslt in db.query('$.name[-1].files[%s]' % i):
             assert rslt.value in files
 
-    rslt = [x.value for x in db.xpath('$.name[?(@.crazy in ("2", "4"))].bloon')]
+    rslt = [x.value for x in db.query('$.name[?(@.crazy in ("2", "4"))].bloon')]
     eq_(rslt, ['here you ARE!', 'well!'])
 
-    rslt = [x.value for x in db.xpath('$.name[?(@.crazy = "2")].bloon')]
+    rslt = [x.value for x in db.query('$.name[?(@.crazy = "2")].bloon')]
     eq_(rslt, ['here you ARE!'])
 
-    rslt = [x.value for x in db.xpath('$.name[-1:].bloon')]
+    rslt = [x.value for x in db.query('$.name[-1:].bloon')]
     eq_(rslt, ['well!'])
 
 
@@ -104,71 +118,72 @@ class TestBookStore:
         self.db.close()
 
     def test_condition(self):
-        gen = self.db.xpath('$.store.book[?(@.author="Evelyn Waugh")].title')
-        rslt = [x.value for x in gen]
-        eq_(rslt, ['Sword of Honour'])
+        path = '$.store.book[?(@.author="Evelyn Waugh")].title'
+        self.eq(path, ['Sword of Honour'])
 
     def test_query_position(self):
-        gen = self.db.xpath('$.store.book[0].title')
-        rslt = [x.value for x in gen]
-        eq_(rslt, self.all_titles[0:1])
-        rslt = [x.value for x in self.db.xpath('$.store.book[2].title')]
-        eq_(rslt, self.all_titles[2:3])
+        path = '$.store.book[0].title'
+        self.eq(path, self.all_titles[0:1])
+        path = '$.store.book[2].title'
+        self.eq(path, self.all_titles[2:3])
 
     def test_query_range_all(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book.title')]
-        eq_(rslt, self.all_titles)
-        rslt = [x.value for x in self.db.xpath('$.store.book[*].title')]
-        eq_(rslt, self.all_titles)
-        rslt = [x.value for x in self.db.xpath('$.store.book[*].author')]
-        eq_(rslt, self.all_authors)
+        path = '$.store.book.title'
+        self.eq(path, self.all_titles)
+        path = '$.store.book[*].title'
+        self.eq(path, self.all_titles)
+        path = '$.store.book[*].author'
+        self.eq(path, self.all_authors)
  
     def test_query_range_pm(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[1:-1].author')]
-        eq_(rslt, self.all_authors[1:-1])
+        path = '$.store.book[1:-1].author'
+        self.eq(path, self.all_authors[1:-1])
 
     def test_query_range_pn(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[2:].author')]
-        eq_(rslt, self.all_authors[2:])
+        path = '$.store.book[2:].author'
+        self.eq(path, self.all_authors[2:])
 
     def test_query_range_mn(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[-2:].author')]
-        eq_(rslt, self.all_authors[-2:])
+        path = '$.store.book[-2:].author'
+        self.eq(path, self.all_authors[-2:])
 
     def test_query_range_nm(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[:-1].author')]
-        eq_(rslt, self.all_authors[:-1])
-        rslt = [x.value for x in self.db.xpath('$.store.book[:-2].author')]
-        eq_(rslt, self.all_authors[:-2])
+        path = '$.store.book[:-1].author'
+        self.eq(path, self.all_authors[:-1])
+        path = '$.store.book[:-2].author'
+        self.eq(path, self.all_authors[:-2])
 
     def test_query_range_mm(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[-2:-1].author')]
-        eq_(rslt, self.all_authors[-2:-1])
-        rslt = [x.value for x in self.db.xpath('$.store.book[-9:-2].author')]
-        eq_(rslt, self.all_authors[-9:-2])
+        path = '$.store.book[-2:-1].author'
+        self.eq(path, self.all_authors[-2:-1])
+        path = '$.store.book[-9:-2].author'
+        self.eq(path, self.all_authors[-9:-2])
 
     def test_query_range_union(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[1, 2, -1].author')]
-        eq_(rslt, self.all_authors[1:3] + self.all_authors[-1:])
-        rslt = [x.value for x in self.db.xpath('$.store.book[0:1, -2].author')]
-        eq_(rslt, self.all_authors[0:1] + self.all_authors[-2:-1])
-
+        path = '$.store.book[1, 2, -1].author'
+        self.eq(path, self.all_authors[1:3] + self.all_authors[-1:])
+        path = '$.store.book[0:1, -2].author'
+        self.eq(path, self.all_authors[0:1] + self.all_authors[-2:-1])
 
     def test_query_slicing_step(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[-4:-1:-1].author')]
-        eq_(rslt, self.all_authors[-4:-1:-1])
-        rslt = [x.value for x in self.db.xpath('$.store.book[-4:-1:-2].author')]
-        eq_(rslt, self.all_authors[-4:-1:-2])
+        path = '$.store.book[-4:-1:-1].author'
+        self.eq(path, self.all_authors[-4:-1:-1])
+        path = '$.store.book[-4:-1:-2].author'
+        self.eq(path, self.all_authors[-4:-1:-2])
 
     def test_query_recursive_descent(self):
-        rslt = [x.value for x in self.db.xpath('$.store..price')]
-        eq_(rslt, self.all_prices)
-        rslt = [x.value for x in self.db.xpath('$..price')]
-        eq_(rslt, self.all_prices)
+        path = '$.store..price'
+        self.eq(path, self.all_prices)
+        path = '$..price'
+        self.eq(path, self.all_prices)
 
     def test_query_exists(self):
-        rslt = [x.value for x in self.db.xpath('$.store.book[?(@.isbn)].author')]
-        eq_(rslt, self.all_authors[-2:])
+        path = '$.store.book[?(@.isbn)].author'
+        self.eq(path, self.all_authors[-2:])
+
+    def eq(self, path, expected):
+        rslt = list(self.db.query(path).values())
+        eq_(rslt, expected)
  
 
 def test_large():
@@ -180,7 +195,7 @@ def test_large():
     db.close()
 
     db = JsonDB.load('large.db')
-    rslt = [x.value for x in db.xpath('$.15.value')][0]
+    rslt = db.query('$.15.value').getone().value
     eq_(rslt, str(15))
 
 if __name__ == '__main__':
