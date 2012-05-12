@@ -18,7 +18,7 @@ try:
 except:
     import json
 
-from constants import *
+from datatypes import *
 import backends
 
 __version__  = '0.1'
@@ -69,6 +69,7 @@ cdef class JsonDB:
         _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
         self = cls(backend=_backend, link_key=link_key)
 
+        # TODO: guess root type from the value provided.
         if root_type in (BOOL, INT):
             value = int(value)
         elif root_type == FLOAT:

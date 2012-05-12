@@ -10,7 +10,7 @@ import os
 import re
 import sqlite3
 from jsondb.backends.base import BackendBase
-from jsondb.constants import *
+from jsondb.datatypes import *
 from jsondb.jsonquery import parse
 
 

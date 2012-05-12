@@ -11,94 +11,109 @@ import os
 from jsondb import *
 from nose.tools import eq_
 
-class TestSimpleTypes:
-    def test_string(self):
-        self.eq(STR, 'Hello world!')
-        self.eq(UNICODE, u'Hello world!')
 
-    def test_bool(self):
-        self.eq(BOOL, True)
-        self.eq(BOOL, False)
-        self.eq(BOOL, 1)
-        self.eq(BOOL, 0)
-
-    def test_int(self):
-        for i in xrange(100):
-            self.eq(INT, i)
-
-    def test_float(self):
-        self.eq(FLOAT, 1.2)
-        self.eq(FLOAT, 0.99999)
-        self.eq(FLOAT, 0.00000000000000000001)
-
-    def test_nil(self):
-        self.eq(NIL, None)
-
-    def eq(self, root_type, value):
+class TestBase:
+    def eq_dumps(self, root_type, value):
         db = JsonDB.create(root_type=root_type, value=value)
         dbpath = db.get_path()
         db.close()
         db = JsonDB.load(dbpath)
         eq_(db.dumps(), value)
 
+
+class TestSimpleTypes(TestBase):
+    def test_string(self):
+        self.eq_dumps(STR, 'Hello world!')
+        self.eq_dumps(UNICODE, u'Hello world!')
+
+    def test_bool(self):
+        self.eq_dumps(BOOL, True)
+        self.eq_dumps(BOOL, False)
+        self.eq_dumps(BOOL, 1)
+        self.eq_dumps(BOOL, 0)
+
+    def test_int(self):
+        for i in xrange(100):
+            self.eq_dumps(INT, i)
+
+    def test_float(self):
+        self.eq_dumps(FLOAT, 1.2)
+        self.eq_dumps(FLOAT, 0.99999)
+        self.eq_dumps(FLOAT, 0.00000000000000000001)
+
+    def test_nil(self):
+        self.eq_dumps(NIL, None)
+
  
-def test_list():
-    """test list"""
-    db = JsonDB.create('bar.db', root_type=LIST)
-    db.feed('hello')
-    db.feed('world!')
-    db.feed([1, 2])
-    db.close()
-    db = JsonDB.load('bar.db')
-    eq_(db.dumps(), ['hello', 'world!', [1.0, 2.0]])
+class TestLists(TestBase):
+    def test_list(self):
+        """test list"""
+        data = ['hello', 'world!', [1, 2.0]]
+        db = JsonDB.create(root_type=LIST)
+        for x in data:
+            db.feed(x)
+        db.close()
+        dbpath = db.get_path()
+        db = JsonDB.load(dbpath)
+        eq_(db.dumps(), data)
 
-def test_list_merge():
-    """merge into a list"""
+    def test_list_merge(self):
+        """merge into a list"""
 
-    data = ['initial item', 'added item1', 'item 2', 'item3-key']
+        data = ['initial item', 'added item1', 'item 2', 'item3-key']
 
-    db = JsonDB.create('bar.db', root_type=DICT)
-    _list_id = db.feed({'root' : data[:1]})[0]
-    db.feed(data[1], _list_id)
-    for x in data[2:]:
-        db.feed(x, _list_id)
-    db.close()
+        db = JsonDB.create(root_type=DICT)
+        _list_id = db.feed({'root' : data[:1]})[0]
+        db.feed(data[1], _list_id)
+        for x in data[2:]:
+            db.feed(x, _list_id)
+        db.close()
+        dbpath = db.get_path()
 
-    db = JsonDB.load('bar.db')
+        db = JsonDB.load(dbpath)
 
-    db.dumprows()
-    rslt = [x.value for x in db.query('$.root')]
-    eq_(rslt, data)
+        db.dumprows()
+        path = '$.root'
+        rslt = list(db.query('$.root').values())
+        eq_(rslt, data)
 
-def test_dict():
-    """test dict"""
-    db = JsonDB.create('bar.db', root_type=DICT)
-    files = ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]
-    _id = db.feed({'name': []})[0]
-    db.feed({'files': files}, _id)
-    db.feed({
-        'bloon': "here you ARE!",
-        'crazy': '2'}, _id)
-    db.feed({
-        'bloon': "well!",
-        'crazy': '4'}, _id)
 
-    h_dom = db.feed({'dom' : []})[0]
-    db.feed({'love': 1}, h_dom)
-    db.close()
-    db = JsonDB.load('bar.db')
-    for i in range(len(files)):
-        for rslt in db.query('$.name[-1].files[%s]' % i):
-            assert rslt.value in files
+class TestDicts:
+    def test_dict(self):
+        """test dict"""
+        db = JsonDB.create(root_type=DICT)
+        files = ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]
+        _id = db.feed({'name': []})[0]
+        db.feed({'files': files}, _id)
+        db.feed({
+            'bloon': "here you ARE!",
+            'crazy': '2'}, _id)
+        db.feed({
+            'bloon': "well!",
+            'crazy': '4'}, _id)
 
-    rslt = [x.value for x in db.query('$.name[?(@.crazy in ("2", "4"))].bloon')]
-    eq_(rslt, ['here you ARE!', 'well!'])
+        h_dom = db.feed({'dom' : []})[0]
+        db.feed({'love': 1}, h_dom)
+        db.close()
+        dbpath = db.get_path()
 
-    rslt = [x.value for x in db.query('$.name[?(@.crazy = "2")].bloon')]
-    eq_(rslt, ['here you ARE!'])
+        db = JsonDB.load(dbpath)
 
-    rslt = [x.value for x in db.query('$.name[-1:].bloon')]
-    eq_(rslt, ['well!'])
+        for i in range(len(files)):
+            for rslt in db.query('$.name[-1].files[%s]' % i):
+                assert rslt.value in files
+
+        path = '$.name[?(@.crazy in ("2", "4"))].bloon'
+        rslt = list(db.query(path).values())
+        eq_(rslt, ['here you ARE!', 'well!'])
+
+        path = '$.name[?(@.crazy = "2")].bloon'
+        rslt = list(db.query(path).values())
+        eq_(rslt, ['here you ARE!'])
+
+        path = '$.name[-1:].bloon'
+        rslt = list(db.query(path).values())
+        eq_(rslt, ['well!'])
 
 
 class TestBookStore:
