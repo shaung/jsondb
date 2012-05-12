@@ -4,6 +4,8 @@
     jsondb.backends.sqlite3backend
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    Sqlite3 backend for jsondb
+
 """
 
 import os
@@ -61,8 +63,6 @@ class Sqlite3Backend(BackendBase):
         )""")
 
         conn.execute("create index if not exists jsondata_idx_composite on jsondata (parent, type)")
-        #conn.execute("create index if not exists jsondata_idx_value on jsondata (value)")
-        #conn.execute("create index if not exists jsondata_idx_type on jsondata (type asc)")
  
         conn.commit()
         self.conn = conn
@@ -85,20 +85,9 @@ class Sqlite3Backend(BackendBase):
             self.conn.execute('PRAGMA temp_store = MEMORY;')
             self.conn.execute('PRAGMA journal_mode = MEMORY;')
 
-            def get_ancestors(id):
-                result = [id]
-                while id > -2:
-                    row = self.conn.execute('select parent from jsondata where id = ?', (id,)).fetchone()
-                    id = row['parent']
-                    result.append(id)
-                return result
-
-            self.conn.create_function('get_ancestors', 1, get_ancestors)
-
             def ancestors_in(id, candicates):
                 # FIXME: Find a better way to do this.
                 candicates = eval(candicates)
-                print 'id', id, 'candicates', candicates
                 while id > -2:
                     if id in candicates:
                         return True
@@ -123,6 +112,9 @@ class Sqlite3Backend(BackendBase):
     def commit(self):
         self.conn.commit()
 
+    def rollback(self):
+        self.conn.rollback()
+ 
     def close(self):
         if self.cursor:
             self.cursor.close()
@@ -145,7 +137,7 @@ class Sqlite3Backend(BackendBase):
         c = self.cursor or self.get_cursor()
         c.executemany(SQL_INSERT, pending_list)
 
-    def iget_children(self, parent_id, value, only_one):
+    def iter_children(self, parent_id, value, only_one):
         c = self.cursor or self.get_cursor()
         sql = SQL_SELECT_CHILDREN
         paras = [parent_id]
@@ -166,7 +158,7 @@ class Sqlite3Backend(BackendBase):
         for row in c.fetchall():
             yield fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], row['value'])
 
-    def iget_dict_items(self, parent_id, value, cond, order, extra):
+    def iter_dict_items(self, parent_id, value, cond, order, extra):
         c = self.cursor or self.get_cursor()
         
         rows = c.execute(SQL_SELECT_DICT_ITEMS + ' limit 1', (parent_id, value))
