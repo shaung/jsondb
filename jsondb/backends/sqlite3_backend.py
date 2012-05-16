@@ -218,7 +218,7 @@ class Sqlite3Backend(BackendBase):
             # Then apply filters to make the id set smaller.
             # Then select against their children.
 
-            print node
+            #print node
             tag = node['tag']
             name = tag.get('name', '')
             axis = tag.get('axis', '.')
@@ -257,7 +257,7 @@ class Sqlite3Backend(BackendBase):
             rows = sum((expand(row) for row in rows), [])
 
             rowids = [row['id'] for row in rows]
-            print 'rowids', rowids
+            #print 'rowids', rowids
             if not rowids:
                 # No matches
                 break
@@ -268,7 +268,7 @@ class Sqlite3Backend(BackendBase):
             parent_ids = rowids
 
         for row in rows:
-            print 'row', row, row.keys(), [x for x in row]
+            #print 'row', row, row.keys(), [x for x in row]
             yield Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
             if one: break
 
@@ -317,10 +317,10 @@ class Sqlite3Backend(BackendBase):
 
         clause = 'select %s from %s where (%s) and (%s)' % ('*', ', '.join('(%s) %s' % (v, k) for k, v in tables.items()), condition, 
                     ' or '.join(['%s.type > 0' % k for k in tables]))
-        stmt = 'select t.id from jsondata t where t.id in %s and exists (%s)' % (repr(tuple(rowids)), clause)
+        stmt = 'select t.id from jsondata t where t.id in (%s) and exists (%s)' % (','.join(str(x) for x in rowids), clause)
 
-        print 'stmt', stmt
-        print 'predicate stmt', condition
+        #print 'stmt', stmt
+        #print 'predicate stmt', condition
         rows = self.select(stmt)
         result = [row['id'] for row in rows]
 
@@ -376,7 +376,7 @@ def parse_expr(expr):
         return None, ''
 
     _type = expr.get('type')
-    print 'expr', expr
+    #print 'expr', expr
     if not _type:
         if 'atom' in expr:
             atom = expr.get('atom')
