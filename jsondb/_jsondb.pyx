@@ -20,6 +20,7 @@ except:
 
 from datatypes import *
 import backends
+import jsonquery
 
 __version__  = '0.1'
 
@@ -55,10 +56,12 @@ class QueryResult(object):
 cdef class JsonDB:
     cdef public backend
     cdef public link_key
+    cdef dict query_path_cache
 
     def __init__(self,  backend, link_key=None):
         self.backend = backend
         self.link_key = link_key or '@__link__'
+        self.query_path_cache = {}
 
     @classmethod
     def create(cls, path=None, root_type=DICT, value=None, overwrite=True, link_key=None, backend_name='sqlite3'):
@@ -182,7 +185,13 @@ cdef class JsonDB:
 
     def query(self, path, parent=-1, one=False):
         """Query the data"""
-        rslt = self.backend.jsonpath(path=path, parent=parent, one=one)
+        cache = self.query_path_cache.get(path)
+        if cache:
+            ast = json.loads(cache)
+        else:
+            ast = jsonquery.parse(path)
+            self.query_path_cache[path] = json.dumps(ast)
+        rslt = self.backend.jsonpath(ast=ast, parent=parent, one=one)
         return QueryResult(rslt)
 
     xpath = query

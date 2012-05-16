@@ -13,7 +13,6 @@ import re
 import sqlite3
 from jsondb.backends.base import BackendBase
 from jsondb.datatypes import *
-from jsondb.jsonquery import parse
 
 
 SQL_INSERT_ROOT         = "insert into jsondata values(-1, -2, ?, ?, null)"
@@ -192,19 +191,18 @@ class Sqlite3Backend(BackendBase):
         c.execute(SQL_UPDATE_VALUE, (value, id))
 
     def select(self, stmt, variables=()):
-        print stmt, variables
+        #print stmt, variables
         c = self.cursor or self.get_cursor()
         c.execute(stmt, variables)
         return c.fetchall()
 
-    def jsonpath(self, path, parent=-1, one=False):
+    def jsonpath(self, ast, parent=-1, one=False):
         parent_ids = [parent]
         funcs = {
             'predicate' : self.parse_predicate,
             'union'     : self.parse_union,
         }
 
-        ast = parse(path)
         sqlstmt = ''
         for idx, node in enumerate(ast['jsonpath']):
             is_last = (idx == len(ast['jsonpath']) - 1)
