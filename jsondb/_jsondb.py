@@ -53,11 +53,7 @@ class QueryResult(object):
             yield row
 
 
-cdef class JsonDB:
-    cdef public backend
-    cdef public link_key
-    cdef dict query_path_cache
-
+class JsonDB:
     def __init__(self,  backend, link_key=None):
         self.backend = backend
         self.link_key = link_key or '@__link__'

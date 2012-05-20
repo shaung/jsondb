@@ -15,12 +15,12 @@ ext_modules = []
 
 if use_cython:
     ext_modules = [
-        Extension("jsondb._jsondb", ["jsondb/_jsondb.pyx"]),
+        #Extension("jsondb._jsondb", ["jsondb/_jsondb.pyx"]),
     ]
     cmdclass.update({ 'build_ext': build_ext })
 else:
     ext_modules = [
-        Extension("jsondb._jsondb", ["jsondb/_jsondb.c"]),
+        #Extension("jsondb._jsondb", ["jsondb/_jsondb.c"]),
     ]
 
 requires = ()
