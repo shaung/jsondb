@@ -60,7 +60,7 @@ class JsonDB:
         self.query_path_cache = {}
 
     @classmethod
-    def create(cls, path=None, root_type=DICT, value=None, overwrite=True, link_key=None, backend_name='sqlite3'):
+    def create(cls, path=None, value={},  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
         """Create a new empty DB."""
         if not path:
             fd, path = tempfile.mkstemp(suffix='.jsondb')
@@ -68,13 +68,26 @@ class JsonDB:
         _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
         self = cls(backend=_backend, link_key=link_key)
 
-        # TODO: guess root type from the value provided.
+        # guess root type from the value provided.
+        root_type = TYPE_MAP.get(type(value))
         if root_type in (BOOL, INT):
-            value = int(value)
+            data = int(value)
         elif root_type == FLOAT:
-            value = float(value)
+            data = float(value)
+        elif root_type in (DICT, LIST):
+            data = ''
+        else:
+            data = value
 
-        self.backend.insert_root((root_type, value))
+        self.backend.insert_root((root_type, data))
+
+        if root_type == DICT:
+            for k, v in value.iteritems():
+                self.feed({k:v})
+        elif root_type == LIST:
+            for x in value:
+                self.feed(x)
+
         self.commit()
 
         return self
