@@ -46,10 +46,19 @@ class TestSimpleTypes(TestBase):
 
  
 class TestLists(TestBase):
+    def test_list_create(self):
+        """test list"""
+        data = ['hello', 'world!', [1, 2.0]]
+        db = JsonDB.create(value=data)
+        db.close()
+        dbpath = db.get_path()
+        db = JsonDB.load(dbpath)
+        eq_(db.dumps(), data)
+
     def test_list(self):
         """test list"""
         data = ['hello', 'world!', [1, 2.0]]
-        db = JsonDB.create(root_type=LIST)
+        db = JsonDB.create(value=[])
         for x in data:
             db.feed(x)
         db.close()
@@ -62,7 +71,7 @@ class TestLists(TestBase):
 
         data = ['initial item', 'added item1', 'item 2', 'item3-key']
 
-        db = JsonDB.create(root_type=DICT)
+        db = JsonDB.create(value={})
         _list_id = db.feed({'root' : data[:1]})[0]
         db.feed(data[1], _list_id)
         for x in data[2:]:
@@ -200,6 +209,13 @@ class TestBookStore:
         rslt = list(self.db.query(path).values())
         eq_(rslt, expected)
  
+class TestCreate(TestBookStore):
+    def setup(self):
+        self.dbpath = 'bookstore.db'
+        import json
+        data = json.load(open('bookstore.json'))
+        self.db = JsonDB.create(value=data)
+
 
 def test_large():
     db = JsonDB.create('large.db', root_type=DICT)
