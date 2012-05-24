@@ -37,6 +37,10 @@ class IllegalTypeError(Error):
     pass
 
 
+class UnsupportedOperation(Error):
+    pass
+
+
 class QueryResult(object):
     def __init__(self, seq):
         self.seq = seq
@@ -44,16 +48,19 @@ class QueryResult(object):
     def getone(self):
         return next(self.seq)
 
-    def values(self):
+    def itervalues(self):
         for row in self.seq:
             yield row.value
+
+    def values(self):
+        return list(row.value for row in self.seq)
 
     def __iter__(self):
         for row in self.seq:
             yield row
 
 
-class JsonDB:
+class JsonDB(object):
     def __init__(self,  backend, link_key=None):
         self.backend = backend
         self.link_key = link_key or '@__link__'
@@ -150,7 +157,7 @@ class JsonDB:
         return id_list
 
     def _feed(self, data, parent_id=-1):
-        parent = self.get_row(parent_id)
+        parent = self.backend.get_row(parent_id)
         parent_type = parent['type']
 
         id_list = []
@@ -242,13 +249,13 @@ class JsonDB:
 
     def dumps(self):
         """Dump the json data"""
-        root = self.get_row(-1)
+        root = self.backend.get_row(-1)
         return self.build_node(root) if root else ''
 
     def dump(self, filepath):
         """Dump the json data to a file"""
         with open(filepath, 'wb') as f:
-            root = self.get_row(-1)
+            root = self.backend.get_row(-1)
             rslt = self.build_node(root) if root else ''
             f.write(repr(rslt))
 
@@ -269,7 +276,10 @@ class JsonDB:
         self.backend.update_link(rowid, link)
 
     def get_row(self, rowid):
-        return self.backend.get_row(rowid)
+        row = self.backend.get_row(rowid)
+        if not row:
+            return None
+        return Result.from_row(row)
 
     def get_children(self, parent_id, value=None, only_one=False):
         for row in self.backend.iter_children(parent_id, value=value, only_one=only_one):
@@ -278,7 +288,24 @@ class JsonDB:
     def get_path(self):
         return self.backend.get_path()
 
-    # TODO: support index access
-    #       db[id] = value equals to
-    #       db.feed(value, id)
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        try:
+            if traceback:
+                self.backend.rollback()
+            else:
+                self.backend.commit()
+            self.close()
+        except:
+            raise
+
+    def __getitem__(self, key):
+        if isinstance(key, basestring):
+            return self.query(key)
+        elif isinstance(key, (int, long)):
+            return self.get_row(key)
+        else:
+            raise UnsupportedOperation
 
