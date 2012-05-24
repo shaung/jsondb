@@ -47,5 +47,9 @@ def get_initial_data(_type):
     return cls.__new__(cls)
 
 
-Result = namedtuple('Result', ('id', 'value', 'link'))
+class Result(namedtuple('Result', ('id', 'value', 'link'))):
+    @classmethod
+    def from_row(cls, row):
+        self = cls(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
+        return self
 

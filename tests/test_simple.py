@@ -206,7 +206,7 @@ class TestBookStore:
         self.eq(path, self.all_authors[-2:])
 
     def eq(self, path, expected):
-        rslt = list(self.db.query(path).values())
+        rslt = self.db.query(path).values()
         eq_(rslt, expected)
  
 class TestCreate(TestBookStore):
@@ -215,6 +215,15 @@ class TestCreate(TestBookStore):
         import json
         data = json.load(open('bookstore.json'))
         self.db = JsonDB.create(value=data)
+
+def test_cxt():
+    with JsonDB.create(value={'name':'foo'}) as db:
+        eq_(db['$.name'].getone().value, 'foo')
+        eq_(db[1].value, 'foo')
+        try:
+            db[True]
+        except UnsupportedOperation:
+            pass
 
 
 def test_large():

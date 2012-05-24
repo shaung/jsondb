@@ -267,7 +267,7 @@ class Sqlite3Backend(BackendBase):
 
         for row in rows:
             #print 'row', row, row.keys(), [x for x in row]
-            yield Result(row['id'], row['value'] if row['type'] != BOOL else bool(row['value']), row['link'])
+            yield Result.from_row(row)
             if one: break
 
 
