@@ -176,7 +176,7 @@ class JsonDB(object):
 
             for key, value in data.iteritems():
                 if key == self.link_key:
-                    self.backend.update_link((value, hash_id))
+                    self.backend.update_link(value, hash_id)
                     continue
                 key_id = self.backend.insert((hash_id, KEY, key,))
                 _ids, _pendings = self._feed(value, key_id)
