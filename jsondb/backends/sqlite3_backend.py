@@ -136,7 +136,7 @@ class Sqlite3Backend(BackendBase):
         c = self.cursor or self.get_cursor()
         c.executemany(SQL_INSERT, pending_list)
 
-    def iter_children(self, parent_id, value, only_one):
+    def iter_children(self, parent_id, value=None, only_one=False):
         c = self.cursor or self.get_cursor()
         sql = SQL_SELECT_CHILDREN
         paras = [parent_id]

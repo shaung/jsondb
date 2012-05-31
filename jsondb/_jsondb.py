@@ -218,13 +218,13 @@ class JsonDB(object):
         _value = row['value']
 
         if _type == KEY:
-            for child in self.get_children(row['id']):
+            for child in self.backend.iter_children(row['id']):
                 node = {_value : self.build_node(child)}
                 break
 
         elif _type in (LIST, DICT):
             func = node.update if _type == DICT else node.append
-            for child in self.get_children(row['id']):
+            for child in self.backend.iter_children(row['id']):
                 func(self.build_node(child))
 
         elif _type == STR:
@@ -280,10 +280,6 @@ class JsonDB(object):
         if not row:
             return None
         return Result.from_row(row)
-
-    def get_children(self, parent_id, value=None, only_one=False):
-        for row in self.backend.iter_children(parent_id, value=value, only_one=only_one):
-            yield row
 
     def get_path(self):
         return self.backend.get_path()
