@@ -12,6 +12,7 @@
 import os
 import tempfile
 import re
+import weakref
 
 try:
     import simplejson as json
@@ -60,87 +61,45 @@ class QueryResult(object):
             yield row
 
 
-class JsonDB(object):
-    def __init__(self,  backend, link_key=None):
-        self.backend = backend
+class Queryable(object):
+    def __init__(self,  backend, link_key=None, root=-1):
+        self.backend = weakref.proxy(backend)
         self.link_key = link_key or '@__link__'
         self.query_path_cache = {}
+        self.root = root
 
-    @classmethod
-    def create(cls, path=None, value={},  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
-        """Create a new empty DB."""
-        if not path:
-            fd, path = tempfile.mkstemp(suffix='.jsondb')
-        dbpath = os.path.normpath(path)
-        _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
-        self = cls(backend=_backend, link_key=link_key)
-
-        # guess root type from the value provided.
-        root_type = TYPE_MAP.get(type(value))
-        if root_type in (BOOL, INT):
-            data = int(value)
-        elif root_type == FLOAT:
-            data = float(value)
-        elif root_type in (DICT, LIST):
-            data = ''
+    def __getitem__(self, key):
+        if isinstance(key, basestring):
+            if key.startswith('$'):
+                return self.query(key)
+            else:
+                key = '$.%s' % key
+                node = self.query(key).getone()
+                root_id = node.id
+                result = JsonDB(backend=self.backend, link_key=self.link_key, root=root_id)
+                return result
+        elif isinstance(key, (int, long)):
+            return self.get_row(key)
         else:
-            data = value
+            raise UnsupportedOperation
 
-        self.backend.insert_root((root_type, data))
-
-        if root_type == DICT:
-            for k, v in value.iteritems():
-                self.feed({k:v})
-        elif root_type == LIST:
-            for x in value:
-                self.feed(x)
-
-        self.commit()
-
-        return self
-
-    @classmethod
-    def load(cls, path, **kws):
-        """Load from an existing DB."""
-        # TODO: path -> connstr
-        _backend = backends.create('sqlite3', filepath=path, overwrite=False)
-        self = cls(backend=_backend, link_key='')
-        return self
-
-    @classmethod
-    def from_file(cls, dbpath, filepath, **kws):
-        """Create a new db from json file"""
-        if isinstance(filepath, basestring):
-            fileobj = open(filepath)
+    def __setitem__(self, key, value):
+        if isinstance(key, basestring):
+            if key.startswith('$'):
+                # == feed
+                pass
+            else:
+                # == feed
+                pass
+        elif isinstance(key, (int, long)):
+            self.feed(value, key)
         else:
-            fileobj = filepath
-        data = json.load(fileobj)
-
-        _type = TYPE_MAP.get(type(data))
-        self = cls.create(dbpath, root_type=_type, **kws)
-        try:
-            self.feed(data)
-        except:
-            self.rollback()
-        else:
-            self.commit()
-        return self
-
-    def set_link_key(self, link_key):
-        self.link_key = link_key
+            # TODO: slicing
+            raise UnsupportedOperation
 
     def store(self, data, parent=-1):
         # TODO: store raw json data into a node.
-        pass
-        """
-        c = self.cursor or self.get_cursor()
-
-        _type = TYPE_MAP.get(type(data))
-
-        c.execute(SQL_INSERT, (parent, _type, json.dumps(data),))
-
-        return c.lastrowid
-        """
+        raise NotImplemented
  
     def feed(self, data, parent=-1):
         """Append data to the specified parent.
@@ -284,6 +243,72 @@ class JsonDB(object):
     def get_path(self):
         return self.backend.get_path()
 
+
+class JsonDB(Queryable):
+    @classmethod
+    def create(cls, path=None, value={},  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
+        """Create a new empty DB."""
+        if not path:
+            fd, path = tempfile.mkstemp(suffix='.jsondb')
+        dbpath = os.path.normpath(path)
+        _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
+        self = cls(backend=_backend, link_key=link_key)
+
+        # guess root type from the value provided.
+        root_type = TYPE_MAP.get(type(value))
+        if root_type in (BOOL, INT):
+            data = int(value)
+        elif root_type == FLOAT:
+            data = float(value)
+        elif root_type in (DICT, LIST):
+            data = ''
+        else:
+            data = value
+
+        self.backend.insert_root((root_type, data))
+
+        if root_type == DICT:
+            for k, v in value.iteritems():
+                self.feed({k:v})
+        elif root_type == LIST:
+            for x in value:
+                self.feed(x)
+
+        self.commit()
+
+        return self
+
+    @classmethod
+    def load(cls, path, **kws):
+        """Load from an existing DB."""
+        # TODO: path -> connstr
+        _backend = backends.create('sqlite3', filepath=path, overwrite=False)
+        self = cls(backend=_backend, link_key='')
+        return self
+
+    @classmethod
+    def from_file(cls, dbpath, filepath, **kws):
+        """Create a new db from json file"""
+        if isinstance(filepath, basestring):
+            fileobj = open(filepath)
+        else:
+            fileobj = filepath
+        # TODO: streaming
+        data = json.load(fileobj)
+
+        _type = TYPE_MAP.get(type(data))
+        self = cls.create(dbpath, root_type=_type, **kws)
+        try:
+            self.feed(data)
+        except:
+            self.rollback()
+        else:
+            self.commit()
+        return self
+
+    def set_link_key(self, link_key):
+        self.link_key = link_key
+
     def __enter__(self):
         return self
 
@@ -296,12 +321,4 @@ class JsonDB(object):
             self.close()
         except:
             raise
-
-    def __getitem__(self, key):
-        if isinstance(key, basestring):
-            return self.query(key)
-        elif isinstance(key, (int, long)):
-            return self.get_row(key)
-        else:
-            raise UnsupportedOperation
 
