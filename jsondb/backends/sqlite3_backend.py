@@ -230,7 +230,7 @@ class Sqlite3Backend(BackendBase):
             #    note: merge the result in python, not the sql.
             if axis == '.':
                 if name:
-                    rows = self.select(select_cols + ' where t.parent in (select distinct id from jsondata where parent in (%s) and type = %s and value = "%s") order by id asc' % (','.join(map(str, parent_ids)), KEY, name))
+                    rows = self.select(select_cols + ' where t.parent in (select distinct id from jsondata where parent in (%s) and type = %s and value = \'%s\') order by id asc' % (','.join(map(str, parent_ids)), KEY, name))
                 else:
                     # TODO: "$.*.author"
                     rows = []
@@ -302,7 +302,7 @@ class Sqlite3Backend(BackendBase):
                         parent =  't.id'
                     else:
                         parent = '(%s)' % subquery
-                    subquery = _query % (cols, parent, '"%s"' % name)
+                    subquery = _query % (cols, parent, "'%s'" % name)
                 else:
                     # TODO
                     pass

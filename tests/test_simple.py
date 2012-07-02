@@ -25,6 +25,9 @@ class TestSimpleTypes(TestBase):
     def test_string(self):
         self.eq_dumps(STR, 'Hello world!')
         self.eq_dumps(UNICODE, u'Hello world!')
+        self.eq_dumps(STR, 'type')
+        self.eq_dumps(STR, 'parent')
+        self.eq_dumps(UNICODE, u'TYPE')
 
     def test_bool(self):
         self.eq_dumps(BOOL, True)
@@ -95,7 +98,7 @@ class TestDicts:
         _id = db.feed({'name': []})[0]
         db.feed({'files': files}, _id)
         db.feed({
-            'bloon': "here you ARE!",
+            'bloon': "type",
             'crazy': '2'}, _id)
         db.feed({
             'bloon': "well!",
@@ -114,11 +117,11 @@ class TestDicts:
 
         path = '$.name[?(@.crazy in ("2", "4"))].bloon'
         rslt = list(db.query(path).values())
-        eq_(rslt, ['here you ARE!', 'well!'])
+        eq_(rslt, ['type', 'well!'])
 
         path = '$.name[?(@.crazy = "2")].bloon'
         rslt = list(db.query(path).values())
-        eq_(rslt, ['here you ARE!'])
+        eq_(rslt, ['type'])
 
         path = '$.name[-1:].bloon'
         rslt = list(db.query(path).values())
@@ -237,6 +240,49 @@ def test_large():
     db = JsonDB.load('large.db')
     rslt = db.query('$.15.value').getone().value
     eq_(rslt, str(15))
+
+
+def test_composed():
+    obj = {'Obj':[
+        {
+            'name': 'foo',
+            'description': 'FOO',
+            'parenta': 'foo.parent',
+            'parent': 'foo.parent',
+            'type': 'a',
+            'domain': 'a',
+        },
+        {
+            'name': 'bar',
+            'description': 'BAR',
+            'parenta': 'bar.parent',
+            'parent': 'bar.parent',
+            'type': 'b',
+            'domain': 'b',
+        }
+
+    ]}
+
+    db = JsonDB.create(value=obj)
+
+    db.dumprows()
+
+    rslt = db.query('$.Obj.name').values()
+    eq_(rslt, [obj['Obj'][0]['name'], obj['Obj'][1]['name']])
+
+    rslt = db.query('$.Obj.parenta').values()
+    eq_(rslt, [obj['Obj'][0]['parenta'], obj['Obj'][1]['parenta']])
+
+    rslt = db.query('$.Obj.domain').values()
+    eq_(rslt, [obj['Obj'][0]['domain'], obj['Obj'][1]['domain']])
+
+    rslt = db.query('$.Obj.type').values()
+    eq_(rslt, [obj['Obj'][0]['type'], obj['Obj'][1]['type']])
+
+
+    rslt = db.query('$.Obj.parent').values()
+    eq_(rslt, [obj['Obj'][0]['parent'], obj['Obj'][1]['parent']])
+
 
 if __name__ == '__main__':
     pass
