@@ -138,7 +138,8 @@ class TestBookStore:
         if os.path.exists(self.dbpath):
             self.db = JsonDB.load(self.dbpath)
         else:
-            self.db = JsonDB.from_file(self.dbpath, 'bookstore.json')
+            fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
+            self.db = JsonDB.from_file(self.dbpath, fpath)
         self.db.dumprows()
 
     def teardown(self):
@@ -216,7 +217,8 @@ class TestCreate(TestBookStore):
     def setup(self):
         self.dbpath = 'bookstore.db'
         import json
-        data = json.load(open('bookstore.json'))
+        fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
+        data = json.load(open(fpath))
         self.db = JsonDB.create(value=data)
 
 def test_cxt():
@@ -269,7 +271,7 @@ def test_composed():
 
     ]}
 
-    db = JsonDB.create('bug.jsondb', value=obj)
+    db = JsonDB.create(value=obj)
 
     db.dumprows()
 
@@ -295,8 +297,15 @@ def test_composed():
     rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
     eq_(rslt.id, 11)
 
+    """
     rslt = db.query('$.Obj.shadow')
     eq_([db.query(x.link).getone().value for x in rslt], [obj['Obj'][1]['description'], obj['Obj'][0]['description']])
+    """
+
+    rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
+    eq_(rslt.query('$.name').getone().value, 'bar')
+
+
 
 if __name__ == '__main__':
     pass
