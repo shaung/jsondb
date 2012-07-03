@@ -251,6 +251,9 @@ def test_composed():
             'parent': 'foo.parent',
             'type': 'a',
             'domain': 'a',
+            'shadow': {
+                '@__link__': '$.Obj[?(@.name == "bar")].description',
+            }
         },
         {
             'name': 'bar',
@@ -259,11 +262,14 @@ def test_composed():
             'parent': 'bar.parent',
             'type': 'b',
             'domain': 'b',
+            'shadow': {
+                '@__link__': '$.Obj[?(@.name == "foo")].description',
+            }
         }
 
     ]}
 
-    db = JsonDB.create(value=obj)
+    db = JsonDB.create('bug.jsondb', value=obj)
 
     db.dumprows()
 
@@ -283,6 +289,14 @@ def test_composed():
     rslt = db.query('$.Obj.parent').values()
     eq_(rslt, [obj['Obj'][0]['parent'], obj['Obj'][1]['parent']])
 
+    rslt = db.query('$.Obj[?(@.name == "bar")].name').getone()
+    eq_(rslt.value, 'bar')
+
+    rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
+    eq_(rslt.id, 11)
+
+    rslt = db.query('$.Obj.shadow')
+    eq_([db.query(x.link).getone().value for x in rslt], [obj['Obj'][1]['description'], obj['Obj'][0]['description']])
 
 if __name__ == '__main__':
     pass

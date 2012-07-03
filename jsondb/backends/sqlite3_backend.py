@@ -193,7 +193,8 @@ class Sqlite3Backend(BackendBase):
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
         c.execute(stmt, variables)
-        return c.fetchall()
+        result = c.fetchall()
+        return result
 
     def jsonpath(self, ast, parent=-1, one=False):
         parent_ids = [parent]
@@ -260,7 +261,11 @@ class Sqlite3Backend(BackendBase):
             for _filter in node.get('filter_list', []):
                 func = funcs.get(_filter['type'])
                 rowids = func(_filter, rowids)
-            parent_ids = rowids
+
+            if is_last:
+                rows = [r for r in rows if r['id'] in rowids]
+            else:
+                parent_ids = rowids
 
         for row in rows:
             yield Result.from_row(row)
