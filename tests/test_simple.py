@@ -297,13 +297,13 @@ def test_composed():
     rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
     eq_(rslt.id, 11)
 
-    """
     rslt = db.query('$.Obj.shadow')
     eq_([db.query(x.link).getone().value for x in rslt], [obj['Obj'][1]['description'], obj['Obj'][0]['description']])
-    """
 
+    """
     rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
     eq_(rslt.query('$.name').getone().value, 'bar')
+    """
 
 
 
