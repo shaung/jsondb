@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+__version__ = '0.1.1'
+
 from distutils.core import setup
 from distutils.extension import Extension
 
@@ -29,7 +31,7 @@ import jsondb
 
 setup(
     name='jsondb',
-    version=jsondb.__version__,
+    version=__version__,
     url='https://github.com/shaung/jsondb/',
     download_url='http://pypi.python.org/pypi/jsondb',
     license='BSD',
