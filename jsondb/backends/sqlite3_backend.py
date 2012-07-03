@@ -155,7 +155,7 @@ class Sqlite3Backend(BackendBase):
         fmt = '{0:>12} {1:>12} {2:12} {3:12}'
         yield fmt.format('id', 'parent', 'type', 'value')
         for row in c.fetchall():
-            yield fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], row['value'])
+            yield fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], 'LINK: %s' % row['link'] if row['link'] else row['value'])
 
     def iter_dict_items(self, parent_id, value, cond, order, extra):
         c = self.cursor or self.get_cursor()
