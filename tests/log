@@ -1,0 +1,887 @@
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select t.id from jsondata t where t.id in (4,9,14,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'author') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value = 'Evelyn Waugh') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9) and type = 8 and value = 'title') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select t.id from jsondata t where t.id in (4,9,14,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'isbn') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value is not NULL ) and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14) and type = 8 and value = 'title') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9,14) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9,14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,14) and type = 8 and value = 'author') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select id from jsondata tk where tk.type = ? and tk.value = ? and exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select id from jsondata tk where tk.type = ? and tk.value = ? and exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          store       
+           1            0 DICT                     
+           2            1 KEY          book        
+           3            2 LIST                     
+           4            3 DICT                     
+           5            4 KEY          category    
+           6            4 KEY          price       
+           7            4 KEY          title       
+           8            4 KEY          author      
+           9            3 DICT                     
+          10            9 KEY          category    
+          11            9 KEY          price       
+          12            9 KEY          title       
+          13            9 KEY          author      
+          14            3 DICT                     
+          15           14 KEY          category    
+          16           14 KEY          price       
+          17           14 KEY          title       
+          18           14 KEY          isbn        
+          19           14 KEY          author      
+          20            3 DICT                     
+          21           20 KEY          category    
+          22           20 KEY          price       
+          23           20 KEY          title       
+          24           20 KEY          isbn        
+          25           20 KEY          author      
+          26            1 KEY          bicycle     
+          27           26 DICT                     
+          28           27 KEY          color       
+          29           27 KEY          price       
+          30            5 STR          reference   
+          31            6 FLOAT                8.95
+          32            7 STR          Sayings of the Century
+          33            8 STR          Nigel Rees  
+          34           10 STR          fiction     
+          35           11 FLOAT               12.99
+          36           12 STR          Sword of Honour
+          37           13 STR          Evelyn Waugh
+          38           15 STR          fiction     
+          39           16 FLOAT                8.99
+          40           17 STR          Moby Dick   
+          41           18 STR          0-553-21311-3
+          42           19 STR          Herman Melville
+          43           21 STR          fiction     
+          44           22 FLOAT               22.99
+          45           23 STR          The Lord of the Rings
+          46           24 STR          0-395-19395-8
+          47           25 STR          J. R. R. Tolkien
+          48           28 STR          red         
+          49           29 FLOAT               19.95
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in () and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in () and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select t.id from jsondata t where t.id in (4,9,14,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'author') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value = 'Evelyn Waugh') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select t.id from jsondata t where t.id in (4,9,14,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'isbn') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value is not NULL ) and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'title') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9,14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,9) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9,14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (9,14,20) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (4,14) and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select id from jsondata tk where tk.type = ? and tk.value = ? and exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select id from jsondata tk where tk.type = ? and tk.value = ? and exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in () and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'store') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (1) and type = 8 and value = 'book') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 3
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in () and type = 8 and value = 'author') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'files') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,15,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'crazy') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value in  ('2','4')) and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (15,20) and type = 8 and value = 'bloon') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,15,20) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'crazy') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value = '2') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (15) and type = 8 and value = 'bloon') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (20) and type = 8 and value = 'bloon') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          root        
+           1            0 LIST                     
+           2            1 STR          initial item
+           3            1 STR          added item1 
+           4            1 STR          item 2      
+           5            1 STR          item3-key   
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'root') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = '15') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (61) and type = 8 and value = 'value') order by id asc
+          id       parent type         value       
+          -1           -2 DICT                     
+           0           -1 KEY          Obj         
+           1            0 LIST                     
+           2            1 DICT                     
+           3            2 KEY          domain      
+           4            2 KEY          name        
+           5            2 KEY          parent      
+           6            2 KEY          parenta     
+           7            2 KEY          shadow      
+           8            7 DICT         LINK: $.Obj[?(@.name == "bar")].description
+           9            2 KEY          type        
+          10            2 KEY          description 
+          11            1 DICT                     
+          12           11 KEY          domain      
+          13           11 KEY          name        
+          14           11 KEY          parent      
+          15           11 KEY          parenta     
+          16           11 KEY          shadow      
+          17           16 DICT         LINK: $.Obj[?(@.name == "foo")].description
+          18           11 KEY          type        
+          19           11 KEY          description 
+          20            3 STR          a           
+          21            4 STR          foo         
+          22            5 STR          foo.parent  
+          23            6 STR          foo.parent  
+          24            9 STR          a           
+          25           10 STR          FOO         
+          26           12 STR          b           
+          27           13 STR          bar         
+          28           14 STR          bar.parent  
+          29           15 STR          bar.parent  
+          30           18 STR          b           
+          31           19 STR          BAR         
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'parenta') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'domain') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'type') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'parent') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,11) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'name') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value == 'bar') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (11) and type = 8 and value = 'name') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,11) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'name') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value == 'bar') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2,11) and type = 8 and value = 'shadow') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,11) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'name') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value == 'bar') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (11) and type = 8 and value = 'description') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent in (select distinct id from jsondata where parent in (-1) and type = 8 and value = 'Obj') order by id asc
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t where t.parent = 1
+select t.id from jsondata t where t.id in (2,11) and exists (select * from (select id, type, value from jsondata where parent = (select id from jsondata where type = 8 and parent = t.id and value = 'name') union all select -9, -1, NULL) __t0__ where (__t0__.type > 0 and __t0__.value == 'foo') and (__t0__.type > 0))
+select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t where t.parent in (select distinct id from jsondata where parent in (2) and type = 8 and value = 'description') order by id asc

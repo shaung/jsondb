@@ -11,6 +11,9 @@ import os
 from jsondb import *
 from nose.tools import eq_
 
+import logging
+logging.basicConfig(level='DEBUG')
+
 
 class TestBase:
     def eq_dumps(self, root_type, value):

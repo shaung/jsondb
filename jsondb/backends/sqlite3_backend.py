@@ -11,9 +11,12 @@
 import os
 import re
 import sqlite3
+
 from jsondb.backends.base import BackendBase
 from jsondb.datatypes import *
 
+import logging
+logger = logging.getLogger(__file__)
 
 SQL_INSERT_ROOT         = "insert into jsondata values(-1, -2, ?, ?, null)"
 SQL_INSERT              = "insert into jsondata values(null, ?, ?, ?, null)"
@@ -193,6 +196,7 @@ class Sqlite3Backend(BackendBase):
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
         c.execute(stmt, variables)
+        logger.debug(stmt)
         result = c.fetchall()
         return result
 
