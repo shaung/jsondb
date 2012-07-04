@@ -236,7 +236,6 @@ def test_large():
     for i in range(1000):
         li = db.feed({str(i):{'value':str(i)}})
 
-    #db.dump('large.json')
     db.close()
 
     db = JsonDB.load('large.db')

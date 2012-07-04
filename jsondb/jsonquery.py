@@ -169,11 +169,13 @@ def cst2json(cst):
         elif name == 'atom':
             # func, number, literal, boolean, child, expr
             child = cst2json(body[0])
-            print child
+            value = child[body[0].__name__]
+            if body[0].__name__ == 'literal':
+                value = "'%s'" % unquote(value)
             result = {
                 name: {
                     'type'  : body[0].__name__,
-                    'value' : child[body[0].__name__]
+                    'value' : value,
                 }
             }
 
