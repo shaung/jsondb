@@ -94,7 +94,7 @@ class TestLists(TestBase):
 
 
 class TestDicts:
-    def test_dict(self):
+    def setup(self):
         """test dict"""
         db = JsonDB.create(root_type=DICT)
         files = ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]
@@ -112,22 +112,27 @@ class TestDicts:
         db.close()
         dbpath = db.get_path()
 
-        db = JsonDB.load(dbpath)
+        self.db = JsonDB.load(dbpath)
+        self.files = files
 
-        for i in range(len(files)):
-            for rslt in db.query('$.name[-1].files[%s]' % i):
-                assert rslt.value in files
+    def test_dict(self):
+        for i in range(len(self.files)):
+            for rslt in self.db.query('$.name[-1].files[%s]' % i):
+                assert rslt.value in self.files
 
+    def test_query_in(self):
         path = '$.name[?(@.crazy in ("2", "4"))].bloon'
-        rslt = list(db.query(path).values())
+        rslt = list(self.db.query(path).values())
         eq_(rslt, ['type', 'well!'])
 
+    def test_query_eq(self):
         path = '$.name[?(@.crazy = "2")].bloon'
-        rslt = list(db.query(path).values())
+        rslt = list(self.db.query(path).values())
         eq_(rslt, ['type'])
 
+    def test_query_range(self):
         path = '$.name[-1:].bloon'
-        rslt = list(db.query(path).values())
+        rslt = list(self.db.query(path).values())
         eq_(rslt, ['well!'])
 
 
@@ -150,6 +155,10 @@ class TestBookStore:
 
     def test_condition(self):
         path = '$.store.book[?(@.author="Evelyn Waugh")].title'
+        self.eq(path, ['Sword of Honour'])
+
+    def test_condition_price(self):
+        path = '$.store.book[?(@.price=12.99)].title'
         self.eq(path, ['Sword of Honour'])
 
     def test_query_position(self):
@@ -246,66 +255,82 @@ def test_large():
     eq_(rslt, str(15))
 
 
-def test_composed():
-    obj = {'Obj':[
-        {
-            'name': 'foo',
-            'description': 'FOO',
-            'parenta': 'foo.parent',
-            'parent': 'foo.parent',
-            'type': 'a',
-            'domain': 'a',
-            'shadow': {
-                '@__link__': '$.Obj[?(@.name == "bar")].description',
+class TestComposed:
+    def setup(self):
+        self.obj = {'Obj':[
+            {
+                'name': 'foo',
+                'description': 'FOO',
+                'parenta': 'foo.parent',
+                'parent': 'foo.parent',
+                'type': 'a',
+                'domain': 'a',
+                'shadow': {
+                    '@__link__': '$.Obj[?(@.name == "bar")].description',
+                }
+            },
+            {
+                'name': 'bar',
+                'description': 'BAR',
+                'parenta': 'bar.parent',
+                'parent': 'bar.parent',
+                'type': 'b',
+                'domain': 'b',
+                'shadow': {
+                    '@__link__': '$.Obj[?(@.name == "foo")].description',
+                }
             }
-        },
-        {
-            'name': 'bar',
-            'description': 'BAR',
-            'parenta': 'bar.parent',
-            'parent': 'bar.parent',
-            'type': 'b',
-            'domain': 'b',
-            'shadow': {
-                '@__link__': '$.Obj[?(@.name == "foo")].description',
-            }
-        }
 
-    ]}
+        ]}
 
-    db = JsonDB.create(value=obj)
+        self.db = JsonDB.create(value=self.obj)
 
-    db.dumprows()
+    def eq(self, path, expected):
+        rslt = self.db.query(path).values()
+        eq_(rslt, expected)
+ 
+    def test_name(self):
+        path = '$.Obj.name'
+        expected = [self.obj['Obj'][0]['name'], self.obj['Obj'][1]['name']]
+        self.eq(path, expected)
 
-    rslt = db.query('$.Obj.name').values()
-    eq_(rslt, [obj['Obj'][0]['name'], obj['Obj'][1]['name']])
+    def test_parenta(self):
+        path = '$.Obj.parenta'
+        expected = [self.obj['Obj'][0]['parenta'], self.obj['Obj'][1]['parenta']]
+        self.eq(path, expected)
 
-    rslt = db.query('$.Obj.parenta').values()
-    eq_(rslt, [obj['Obj'][0]['parenta'], obj['Obj'][1]['parenta']])
+    def test_domain(self):
+        path = '$.Obj.domain'
+        expected = [self.obj['Obj'][0]['domain'], self.obj['Obj'][1]['domain']]
+        self.eq(path, expected)
 
-    rslt = db.query('$.Obj.domain').values()
-    eq_(rslt, [obj['Obj'][0]['domain'], obj['Obj'][1]['domain']])
+    def test_type(self):
+        path = '$.Obj.type'
+        self.eq(path, [self.obj['Obj'][0]['type'], self.obj['Obj'][1]['type']])
 
-    rslt = db.query('$.Obj.type').values()
-    eq_(rslt, [obj['Obj'][0]['type'], obj['Obj'][1]['type']])
+    def test_parent(self):
+        path = '$.Obj.parent'
+        expected = [self.obj['Obj'][0]['parent'], self.obj['Obj'][1]['parent']]
+        self.eq(path, expected)
 
+    def test_value(self):
+        rslt = self.db.query('$.Obj[?(@.name == "bar")].name').getone()
+        eq_(rslt.value, 'bar')
 
-    rslt = db.query('$.Obj.parent').values()
-    eq_(rslt, [obj['Obj'][0]['parent'], obj['Obj'][1]['parent']])
+    def test_id(self):
+        rslt = self.db.query('$.Obj[?(@.name == "bar")]').getone()
+        eq_(rslt.id, 11)
 
-    rslt = db.query('$.Obj[?(@.name == "bar")].name').getone()
-    eq_(rslt.value, 'bar')
+    def test_link(self):
+        rslt = self.db.query('$.Obj.shadow')
+        eq_([self.db.query(x.link).getone().value for x in rslt], [self.obj['Obj'][1]['description'], self.obj['Obj'][0]['description']])
 
-    rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
-    eq_(rslt.id, 11)
-
-    rslt = db.query('$.Obj.shadow')
-    eq_([db.query(x.link).getone().value for x in rslt], [obj['Obj'][1]['description'], obj['Obj'][0]['description']])
-
-    """
-    rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
-    eq_(rslt.query('$.name').getone().value, 'bar')
-    """
+    def test_experiment(self):
+        pass
+        """
+        rslt = db.query('$.Obj[?(@.name == "bar")]').getone()
+        eq_(rslt.query('$.name').getone().value, 'bar')
+        """
 
 
 
