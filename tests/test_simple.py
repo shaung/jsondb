@@ -156,12 +156,20 @@ class TestBookStore:
     def teardown(self):
         self.db.close()
 
-    def test_condition(self):
+    def test_condition_eq(self):
         path = '$.store.book[?(@.author="Evelyn Waugh")].title'
+        self.eq(path, ['Sword of Honour'])
+
+    def test_condition_eq_2(self):
+        path = '$.store.book[?(@.author == "Evelyn Waugh")].title'
         self.eq(path, ['Sword of Honour'])
 
     def test_condition_price_eq(self):
         path = '$.store.book[?(@.price=12.99)].title'
+        self.eq(path, ['Sword of Honour'])
+
+    def test_condition_price_eq_2(self):
+        path = '$.store.book[?(@.price == 12.99)].title'
         self.eq(path, ['Sword of Honour'])
 
     def test_condition_price_gt(self):
