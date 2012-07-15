@@ -7,3 +7,4 @@ build
 *.db
 tests/*.db
 local
+MANIFEST
