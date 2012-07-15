@@ -14,6 +14,12 @@ from nose.tools import eq_
 import logging
 logging.basicConfig(level='DEBUG')
 
+logger = logging.getLogger(__file__)
+
+
+import sqlite3
+logger.debug('sqlite3 version = %s' % sqlite3.sqlite_version)
+
 
 class TestBase:
     def eq_dumps(self, root_type, data):
