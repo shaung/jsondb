@@ -13,7 +13,7 @@ Usage
         'name': 'foo',
     }
     
-    db = JsonDB(value=data)
+    db = JsonDB(data)
     
     assert db.query('$.name') == 'foo'
 
