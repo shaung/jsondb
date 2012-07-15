@@ -1,8 +1,9 @@
 jsondb
 ======
 
-
 Off-memory json for large data that does not fit the memory.
+
+![Build Status](https://secure.travis-ci.org/shaung/jsondb.png?branch=develop)
 
 Usage
 ------
@@ -13,7 +14,7 @@ Usage
         'name': 'foo',
     }
     
-    db = JsonDB(value=data)
+    db = JsonDB(data)
     
     assert db.query('$.name') == 'foo'
 
