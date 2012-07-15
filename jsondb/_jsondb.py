@@ -246,7 +246,7 @@ class Queryable(object):
 
 class JsonDB(Queryable):
     @classmethod
-    def create(cls, path=None, value={},  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
+    def create(cls, data={}, path=None,  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
         """Create a new empty DB."""
         if not path:
             fd, path = tempfile.mkstemp(suffix='.jsondb')
@@ -254,24 +254,24 @@ class JsonDB(Queryable):
         _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
         self = cls(backend=_backend, link_key=link_key)
 
-        # guess root type from the value provided.
-        root_type = TYPE_MAP.get(type(value))
+        # guess root type from the data provided.
+        root_type = TYPE_MAP.get(type(data))
         if root_type in (BOOL, INT):
-            data = int(value)
+            root = int(data)
         elif root_type == FLOAT:
-            data = float(value)
+            root = float(data)
         elif root_type in (DICT, LIST):
-            data = ''
+            root = ''
         else:
-            data = value
+            root = data
 
-        self.backend.insert_root((root_type, data))
+        self.backend.insert_root((root_type, root))
 
         if root_type == DICT:
-            for k, v in value.iteritems():
+            for k, v in data.iteritems():
                 self.feed({k:v})
         elif root_type == LIST:
-            for x in value:
+            for x in data:
                 self.feed(x)
 
         self.commit()

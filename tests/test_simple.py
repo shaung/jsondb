@@ -16,12 +16,12 @@ logging.basicConfig(level='DEBUG')
 
 
 class TestBase:
-    def eq_dumps(self, root_type, value):
-        db = JsonDB.create(root_type=root_type, value=value)
+    def eq_dumps(self, root_type, data):
+        db = JsonDB.create(data)
         dbpath = db.get_path()
         db.close()
         db = JsonDB.load(dbpath)
-        eq_(db.dumps(), value)
+        eq_(db.dumps(), data)
 
 
 class TestSimpleTypes(TestBase):
@@ -55,7 +55,7 @@ class TestLists(TestBase):
     def test_list_create(self):
         """test list"""
         data = ['hello', 'world!', [1, 2.0]]
-        db = JsonDB.create(value=data)
+        db = JsonDB.create(data)
         db.close()
         dbpath = db.get_path()
         db = JsonDB.load(dbpath)
@@ -64,7 +64,7 @@ class TestLists(TestBase):
     def test_list(self):
         """test list"""
         data = ['hello', 'world!', [1, 2.0]]
-        db = JsonDB.create(value=[])
+        db = JsonDB.create([])
         for x in data:
             db.feed(x)
         db.close()
@@ -77,7 +77,7 @@ class TestLists(TestBase):
 
         data = ['initial item', 'added item1', 'item 2', 'item3-key']
 
-        db = JsonDB.create(value={})
+        db = JsonDB.create({})
         _list_id = db.feed({'root' : data[:1]})[0]
         db.feed(data[1], _list_id)
         for x in data[2:]:
@@ -96,7 +96,7 @@ class TestLists(TestBase):
 class TestDicts:
     def setup(self):
         """test dict"""
-        db = JsonDB.create(root_type=DICT)
+        db = JsonDB.create({})
         files = ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]
         _id = db.feed({'name': []})[0]
         db.feed({'files': files}, _id)
@@ -231,10 +231,10 @@ class TestCreate(TestBookStore):
         import json
         fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
         data = json.load(open(fpath))
-        self.db = JsonDB.create(value=data)
+        self.db = JsonDB.create(data)
 
 def test_cxt():
-    with JsonDB.create(value={'name':'foo'}) as db:
+    with JsonDB.create({'name':'foo'}) as db:
         eq_(db['$.name'].getone().value, 'foo')
         eq_(db[1].value, 'foo')
         try:
@@ -244,7 +244,7 @@ def test_cxt():
 
 
 def test_large():
-    db = JsonDB.create('large.db', root_type=DICT)
+    db = JsonDB.create(path='large.db')
     for i in range(1000):
         li = db.feed({str(i):{'value':str(i)}})
 
@@ -283,7 +283,7 @@ class TestComposed:
 
         ]}
 
-        self.db = JsonDB.create(value=self.obj)
+        self.db = JsonDB.create(self.obj)
 
     def eq(self, path, expected):
         rslt = self.db.query(path).values()

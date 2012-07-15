@@ -4,5 +4,6 @@
 logs
 *.swp
 build
+*.db
 tests/*.db
 local
