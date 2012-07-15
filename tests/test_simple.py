@@ -160,9 +160,17 @@ class TestBookStore:
         path = '$.store.book[?(@.author="Evelyn Waugh")].title'
         self.eq(path, ['Sword of Honour'])
 
-    def test_condition_price(self):
+    def test_condition_price_eq(self):
         path = '$.store.book[?(@.price=12.99)].title'
         self.eq(path, ['Sword of Honour'])
+
+    def test_condition_price_gt(self):
+        path = '$.store.book[?(@.price > 12.99)].title'
+        self.eq(path, ['The Lord of the Rings'])
+
+    def test_condition_price_lt(self):
+        path = '$.store.book[?(@.price < 12.99)].title'
+        self.eq(path, ['Sayings of the Century', 'Moby Dick'])
 
     def test_query_position(self):
         path = '$.store.book[0].title'
