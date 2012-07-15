@@ -1,8 +1,9 @@
 jsondb
 ======
 
-
 Off-memory json for large data that does not fit the memory.
+
+![Build Status](https://secure.travis-ci.org/shaung/jsondb.png?branch=develop)
 
 Usage
 ------
