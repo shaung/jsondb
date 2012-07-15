@@ -296,12 +296,11 @@ class JsonDB(Queryable):
         # TODO: streaming
         data = json.load(fileobj)
 
-        _type = TYPE_MAP.get(type(data))
-        self = cls.create(dbpath, root_type=_type, **kws)
+        self = cls.create(path=dbpath, **kws)
         try:
             self.feed(data)
         except:
-            self.rollback()
+            self.backend.rollback()
         else:
             self.commit()
         return self
