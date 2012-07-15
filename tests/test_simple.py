@@ -87,7 +87,7 @@ class TestLists(TestBase):
 
         db = JsonDB.load(dbpath)
 
-        db.dumprows()
+        #db.dumprows()
         path = '$.root'
         rslt = list(db.query('$.root').values())
         eq_(rslt, data)
@@ -144,11 +144,14 @@ class TestBookStore:
     def setup(self):
         self.dbpath = 'bookstore.db'
         if os.path.exists(self.dbpath):
-            self.db = JsonDB.load(self.dbpath)
-        else:
-            fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
-            self.db = JsonDB.from_file(self.dbpath, fpath)
-        self.db.dumprows()
+            os.remove(self.dbpath)
+
+        fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
+        db = JsonDB.from_file(self.dbpath, fpath)
+        db.close()
+
+        self.db = JsonDB.load(self.dbpath)
+        #self.db.dumprows()
 
     def teardown(self):
         self.db.close()
