@@ -171,8 +171,16 @@ class TestBookStore:
         eq_([row['id'] for row in result], [9])
  
     def test_travis_eq(self):
-        result = self.db.backend.select("select id, value from jsondata where value = 'Evelyn Waugh'")
+        result = self.db.backend.select("""
+        select id, type, value from (
+            select id, type, value from jsondata t 
+                where t.parent in (select id from jsondata where type = 8 and parent in (4,9,14,20) and value = 'author')
+            union all select -9 as id, -1 as type, NULL as value
+        ) __t0__
+        where (__t0__.type > 0 and __t0__.value = 'Evelyn Waugh')
+        and (__t0__.type > 0)""")
         eq_([row['value'] for row in result], ['Evelyn Waugh'])
+
 
     def test_condition_eq(self):
         path = '$.store.book[?(@.author="Evelyn Waugh")].title'
