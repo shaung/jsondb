@@ -17,7 +17,7 @@ def and_op():           return re.compile(r'and', re.I)
 def and_expr():         return not_expr, -1, (and_op, and_expr)
 def not_op():           return re.compile(r'not', re.I)
 def not_expr():         return 0, not_op, in_expr
-def in_op():            return re.compile(r'in', re.I)
+def in_op():            return re.compile(r'in|not[ ]+in', re.I)
 def in_expr():          return cmp_expr, -1, (in_op, '(', expr_list, ')')
 def cmp_op():           return re.compile(r"\=+|\!\=|\<\=|\<|\>\=|\>")
 def cmp_expr():         return like_expr, -1, (cmp_op, cmp_expr)
