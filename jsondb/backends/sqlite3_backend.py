@@ -29,10 +29,10 @@ SQL_SELECT = "select * from jsondata where id = ?"
 
 
 class Sqlite3Backend(BackendBase):
-    def __init__(self, filepath, *args, **kws):
+    def __init__(self, url, *args, **kws):
         self.conn = None
         self.cursor = None
-        self.dbpath = filepath
+        self.dbpath = url.database
 
         overwrite = kws.get('overwrite', False)
         if overwrite or not os.path.exists(self.dbpath):

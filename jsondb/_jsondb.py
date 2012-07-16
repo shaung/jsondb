@@ -246,12 +246,21 @@ class Queryable(object):
 
 class JsonDB(Queryable):
     @classmethod
-    def create(cls, data={}, path=None,  overwrite=True, link_key=None, backend_name='sqlite3', **kws):
-        """Create a new empty DB."""
-        if not path:
-            fd, path = tempfile.mkstemp(suffix='.jsondb')
-        dbpath = os.path.normpath(path)
-        _backend = backends.create(backend_name, filepath=dbpath, overwrite=overwrite)
+    def create(cls, data={}, path=None, overwrite=True, link_key=None, **kws):
+        """
+        Create a new empty DB.
+
+        :param data: Initial data. An empty dict if not specified.
+
+        :param path: An RFC-1738-style string which specifies the URL to load from.
+
+        :param overwrite: If is True and the database specified by *path* already exists, it will be truncated.
+
+        :param link_key: Key directive for links in the database.
+
+        :param kws: Additional parameters to parse to the engine.
+        """
+        _backend = backends.create(path, overwrite=overwrite)
         self = cls(backend=_backend, link_key=link_key)
 
         # guess root type from the data provided.
@@ -280,9 +289,14 @@ class JsonDB(Queryable):
 
     @classmethod
     def load(cls, path, **kws):
-        """Load from an existing DB."""
-        # TODO: path -> connstr
-        _backend = backends.create('sqlite3', filepath=path, overwrite=False)
+        """
+        Load from an existing DB.
+
+        :param path: An RFC-1738-style string which specifies the URL to load from.
+
+        :param kws: Additional parameters to parse to the engine.
+        """
+        _backend = backends.create(path, overwrite=False)
         self = cls(backend=_backend, link_key='')
         return self
 
