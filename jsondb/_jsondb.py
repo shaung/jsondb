@@ -252,7 +252,7 @@ class JsonDB(Queryable):
 
         :param data: Initial data. An empty dict if not specified.
 
-        :param path: An RFC-1738-style string which specifies the URL to load from.
+        :param path: An RFC-1738-style string which specifies the URL to store into.
 
         :param overwrite: If is True and the database specified by *path* already exists, it will be truncated.
 

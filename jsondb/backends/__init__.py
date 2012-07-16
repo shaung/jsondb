@@ -15,12 +15,6 @@ class Error(Exception):
 class NonAvailableError(Error):
     pass
 
-def create(name, *args, **kws):
-    cls = drivers.get(name.lower(), None)
-    if not cls:
-        raise NonAvailableError, name
-    return cls(*args, **kws) if cls else None
-
 
 def create(connstr, *args, **kws):
     if not connstr:
