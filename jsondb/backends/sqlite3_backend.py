@@ -391,6 +391,10 @@ def parse_expr(expr):
         fmt = '%s %s %s'
         if op == 'or':
             fmt = '(%s) %s (%s)'
+        # FIXME: It seems "=" does not work properly in some environments.
+        #        Dont know the reason yet. Just make use of the sqlite3 syntax sugar for now.
+        if op in ('=', '=='):
+            op = 'is'
         lexprs = parse_expr(left)
         if lexprs[0] == 'child' and op in ('and', 'or', 'not'):
             lexpr = ' %s is not NULL ' % lexprs[1] 
