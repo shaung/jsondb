@@ -171,6 +171,13 @@ class Queryable(object):
 
     xpath = query
 
+    def __call__(self, path, parent=None):
+        """
+        The experimental new query interface.
+        Should return a list in which each element is queryable.
+        """
+        pass
+
     def build_node(self, row):
         node = get_initial_data(row['type'])
         _type = row['type']
@@ -206,10 +213,13 @@ class Queryable(object):
 
         return node
 
+    def data(self):
+        root = self.backend.get_row(self.root)
+        return self.build_node(root) if root else {}
+
     def dumps(self):
         """Dump the json data"""
-        root = self.backend.get_row(-1)
-        return self.build_node(root) if root else ''
+        return json.dumps(self.data())
 
     def dump(self, filepath):
         """Dump the json data to a file"""
@@ -334,4 +344,13 @@ class JsonDB(Queryable):
             self.close()
         except:
             raise
+
+class ListQueryable(Queryable, list):
+    pass
+
+class DictQueryable(Queryable, dict):
+    pass
+
+class PlainQueryable(Queryable):
+    pass
 

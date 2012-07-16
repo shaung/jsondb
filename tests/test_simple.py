@@ -7,7 +7,7 @@
     Tests for jsondb.
 """
 
-import os
+import os, json
 from jsondb import *
 from nose.tools import eq_
 
@@ -27,7 +27,8 @@ class TestBase:
         dbpath = db.get_path()
         db.close()
         db = JsonDB.load(dbpath)
-        eq_(db.dumps(), data)
+        eq_(db.dumps(), json.dumps(data))
+        eq_(db.data(), data)
 
 
 class TestSimpleTypes(TestBase):
@@ -65,7 +66,7 @@ class TestLists(TestBase):
         db.close()
         dbpath = db.get_path()
         db = JsonDB.load(dbpath)
-        eq_(db.dumps(), data)
+        eq_(db.data(), data)
 
     def test_list(self):
         """test list"""
@@ -76,7 +77,7 @@ class TestLists(TestBase):
         db.close()
         dbpath = db.get_path()
         db = JsonDB.load(dbpath)
-        eq_(db.dumps(), data)
+        eq_(db.data(), data)
 
     def test_list_merge(self):
         """merge into a list"""

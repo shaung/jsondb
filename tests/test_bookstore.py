@@ -32,6 +32,8 @@ class TestBookStore:
             os.remove(self.dbpath)
 
         fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
+        self.obj = json.load(open(fpath))
+
         db = JsonDB.from_file(self.dbpath, fpath)
         db.close()
 
@@ -41,6 +43,17 @@ class TestBookStore:
     def teardown(self):
         self.db.close()
 
+    def test_create(self):
+        fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
+        db = JsonDB.create(self.obj)
+        eq_(db.dumps(), self.db.dumps())
+
+    def test_data(self):
+        data = self.db.data()
+        newdata = data
+        newdata.update(self.obj)
+        eq_(data, newdata)
+        
     def test_condition_eq(self):
         path = '$.store.book[?(@.author="Evelyn Waugh")].title'
         self.eq(path, ['Sword of Honour'])
@@ -169,14 +182,6 @@ class TestBookStore:
         rslt = self.db.query(path).values()
         eq_(rslt, expected)
  
-class TestCreate(TestBookStore):
-    def setup(self):
-        self.dbpath = 'bookstore.db'
-        import json
-        fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
-        data = json.load(open(fpath))
-        self.db = JsonDB.create(data)
-
 
 if __name__ == '__main__':
     pass
