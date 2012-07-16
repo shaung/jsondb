@@ -18,14 +18,12 @@ from jsondb.datatypes import *
 import logging
 logger = logging.getLogger(__file__)
 
-SQL_INSERT_ROOT         = "insert into jsondata values(-1, -2, ?, ?, null)"
-SQL_INSERT              = "insert into jsondata values(null, ?, ?, ?, null)"
-SQL_UPDATE_LINK         = "update jsondata set link = ? where id = ?"
-SQL_UPDATE_VALUE        = "update jsondata set value = ? where id = ?"
-SQL_SELECT_DICT_ITEMS   = "select id, type, value, link from jsondata where parent in (select distinct id from jsondata where parent = ? and type = %s and value = ?) order by id asc" % KEY
-SQL_SELECT_CHILDREN     = "select id, type, value, link from jsondata where parent = ? order by id asc"
-SQL_SELECT_CHILDREN_COND = "select t.id, t.type, t.value, t.link from jsondata t where t.parent = ? %s order by t.id %s %s"
-SQL_SELECT = "select * from jsondata where id = ?"
+SQL_INSERT_ROOT     = "insert into jsondata values(-1, -2, ?, ?, null)"
+SQL_INSERT          = "insert into jsondata values(null, ?, ?, ?, null)"
+SQL_UPDATE_LINK     = "update jsondata set link = ? where id = ?"
+SQL_UPDATE_VALUE    = "update jsondata set value = ? where id = ?"
+SQL_SELECT_CHILDREN = "select id, type, value, link from jsondata where parent = ? order by id asc"
+SQL_SELECT          = "select * from jsondata where id = ?"
 
 
 class Sqlite3Backend(BackendBase):
@@ -159,18 +157,6 @@ class Sqlite3Backend(BackendBase):
         yield fmt.format('id', 'parent', 'type', 'value')
         for row in c.fetchall():
             yield fmt.format(row['id'], row['parent'], DATA_TYPE_NAME[row['type']], 'LINK: %s' % row['link'] if row['link'] else row['value'])
-
-    def iter_dict_items(self, parent_id, value, cond, order, extra):
-        c = self.cursor or self.get_cursor()
-        
-        rows = c.execute(SQL_SELECT_DICT_ITEMS + ' limit 1', (parent_id, value))
-        for row in rows:
-            if row['type'] == LIST:
-                sql = SQL_SELECT_CHILDREN_COND % (cond, order, extra)
-                for item in c.execute(sql, (row['id'],)):
-                    yield item
-            else:
-                yield row
 
     def get_row(self, rowid):
         c = self.cursor or self.get_cursor()
@@ -306,7 +292,7 @@ class Sqlite3Backend(BackendBase):
                 axis = tag.get('axis', '.')
                 alias = '%s%s' % (key, i)
                 if name and axis == '.':
-                    _query = 'select %s from jsondata where parent = (select id from jsondata where type = 8 and parent = %s and value = %s)'
+                    _query = 'select %%s from jsondata where parent = (select id from jsondata where type = %s and parent = %%s and value = %%s)' % KEY
                     if not subquery:
                         parent =  't.id'
                     else:
@@ -408,6 +394,6 @@ def parse_expr(expr):
 
         result = fmt % (lexpr or 1, op if lexpr else ' and %s ' % op , rexpr)
         _type = op
-    return _type, result
 
+    return _type, result
 
