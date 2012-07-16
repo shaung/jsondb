@@ -182,6 +182,10 @@ class TestBookStore:
         path = '$.store.book[?(@.author like "Evelyn%")].title'
         self.eq(path, ['Sword of Honour'])
  
+    def test_condition_not_like(self):
+        path = '$.store.book[?(@.author not like "%i%")].title'
+        self.eq(path, ['Sword of Honour'])
+ 
     def test_condition_price_eq(self):
         path = '$.store.book[?(@.price=12.99)].title'
         self.eq(path, ['Sword of Honour'])
