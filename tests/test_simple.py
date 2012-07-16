@@ -174,6 +174,14 @@ class TestBookStore:
         path = '$.store.book[?(@.author != "Evelyn Waugh")].title'
         self.eq(path, ['Sayings of the Century', 'Moby Dick', 'The Lord of the Rings'])
 
+    def test_condition_not_eq(self):
+        path = '$.store.book[?(not (@.author == "Evelyn Waugh"))].title'
+        self.eq(path, ['Sayings of the Century', 'Moby Dick', 'The Lord of the Rings'])
+ 
+    def test_condition_not_or(self):
+        path = '$.store.book[?(not (@.author != "Evelyn Waugh") or @.price = 12.99)].title'
+        self.eq(path, self.all_titles)
+ 
     def test_condition_like_exact(self):
         path = '$.store.book[?(@.author like "Evelyn Waugh")].title'
         self.eq(path, ['Sword of Honour'])
@@ -194,6 +202,10 @@ class TestBookStore:
         path = '$.store.book[?(@.author not in ("Herman Melville", "J. R. R. Tolkien"))].title'
         self.eq(path, ['Sayings of the Century', 'Sword of Honour'])
  
+    def test_condition_not_in_2(self):
+        path = '$.store.book[?(not (@.author in ("Herman Melville", "J. R. R. Tolkien")))].title'
+        self.eq(path, ['Sayings of the Century', 'Sword of Honour'])
+
     def test_condition_price_eq(self):
         path = '$.store.book[?(@.price=12.99)].title'
         self.eq(path, ['Sword of Honour'])

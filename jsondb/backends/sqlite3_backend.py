@@ -195,8 +195,8 @@ class Sqlite3Backend(BackendBase):
 
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
-        c.execute(stmt, variables)
         logger.debug(stmt)
+        c.execute(stmt, variables)
         result = c.fetchall()
         return result
 
@@ -406,7 +406,7 @@ def parse_expr(expr):
         else:
             rexpr = rexprs[1]
 
-        result = fmt % (lexpr or 1, op, rexpr)
+        result = fmt % (lexpr or 1, op if lexpr else ' and %s ' % op , rexpr)
         _type = op
     return _type, result
 
