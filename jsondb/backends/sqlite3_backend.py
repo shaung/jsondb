@@ -179,6 +179,10 @@ class Sqlite3Backend(BackendBase):
         c = self.cursor or self.get_cursor()
         c.execute(SQL_UPDATE_VALUE, (value, id))
 
+    def increase_value(self, id, increase_by=0):
+        c = self.cursor or self.get_cursor()
+        c.execute("update jsondata set value = value + ? where id = ?", (increase_by, id))
+
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
         logger.debug(stmt)

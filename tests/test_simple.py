@@ -94,7 +94,6 @@ class TestLists(TestBase):
 
         db = JsonDB.load(dbpath)
 
-        #db.dumprows()
         path = '$.root'
         rslt = list(db.query('$.root').values())
         eq_(rslt, data)

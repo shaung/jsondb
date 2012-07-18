@@ -97,11 +97,11 @@ class Queryable(object):
             # TODO: slicing
             raise UnsupportedOperation
 
-    def store(self, data, parent=-1):
+    def store(self, data, parent=None):
         # TODO: store raw json data into a node.
         raise NotImplemented
  
-    def feed(self, data, parent=-1):
+    def feed(self, data, parent=None):
         """Append data to the specified parent.
 
         Parent may be a dict or list.
@@ -110,12 +110,15 @@ class Queryable(object):
         * value.id when appending {key : value} to a dict
         * each_child.id when appending a list to a list
         """
+
+        if parent is None:
+            parent = self.root
         # TODO: should be in a transaction
         id_list, pending_list = self._feed(data, parent)
         self.backend.batch_insert(pending_list)
         return id_list
 
-    def _feed(self, data, parent_id=-1):
+    def _feed(self, data, parent_id):
         parent = self.backend.get_row(parent_id)
         parent_type = parent['type']
 
@@ -128,8 +131,8 @@ class Queryable(object):
             if parent_type == DICT:
                 hash_id = parent_id
             elif parent_type in (LIST, KEY):
-                hash_id = self.backend.insert((parent_id, _type, '',))
-            elif parent_id != -1:
+                hash_id = self.backend.insert((parent_id, _type, 0,))
+            elif parent_id != self.root:
                 print parent_id, parent_type
                 raise IllegalTypeError, 'Parent node should be either DICT or LIST.'
 
@@ -147,7 +150,7 @@ class Queryable(object):
             #       now we always assume it's appending
             # TODO: The value field of LIST type is unused now.
             #       can be used to store the length.
-            hash_id = self.backend.insert((parent_id, _type, '',))
+            hash_id = self.backend.insert((parent_id, _type, 0,))
             id_list.append(hash_id)
             for x in data:
                 _ids, _pendings = self._feed(x, hash_id)
@@ -156,10 +159,16 @@ class Queryable(object):
         else:
             pending_list.append((parent_id, _type, data,))
 
+        if parent_type in (DICT, LIST):
+            self.backend.increase_value(parent_id, 1)
+
         return id_list, pending_list
 
-    def query(self, path, parent=-1, one=False):
+    def query(self, path, parent=None, one=False):
         """Query the data"""
+        if parent is None:
+            parent = self.root
+
         cache = self.query_path_cache.get(path)
         if cache:
             ast = json.loads(cache)
@@ -176,7 +185,8 @@ class Queryable(object):
         The experimental new query interface.
         Should return a list in which each element is queryable.
         """
-        pass
+        if parent is None:
+            parent = self.root
 
     def build_node(self, row):
         node = get_initial_data(row['type'])
@@ -224,7 +234,7 @@ class Queryable(object):
     def dump(self, filepath):
         """Dump the json data to a file"""
         with open(filepath, 'wb') as f:
-            root = self.backend.get_row(-1)
+            root = self.backend.get_row(self.root)
             rslt = self.build_node(root) if root else ''
             f.write(repr(rslt))
 
@@ -313,6 +323,7 @@ class JsonDB(Queryable):
     @classmethod
     def from_file(cls, dbpath, filepath, **kws):
         """Create a new db from json file"""
+        # TODO: not necessarily need an url
         if isinstance(filepath, basestring):
             fileobj = open(filepath)
         else:
