@@ -201,7 +201,7 @@ class Sqlite3Backend(BackendBase):
         for idx, node in enumerate(ast['jsonpath']):
             is_last = (idx == len(ast['jsonpath']) - 1)
             if is_last:
-                select_cols = 'select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.value as value, t.link as link from jsondata t'
+                select_cols = 'select rowid as rowno, t.id as id, t.parent as parent, t.type as type, t.link as link from jsondata t'
             else:
                 select_cols = 'select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t'
 
@@ -213,6 +213,7 @@ class Sqlite3Backend(BackendBase):
             tag = node['tag']
             name = tag.get('name', '')
             axis = tag.get('axis', '.')
+            filters = node.get('filter_list', [])
             # if name and axis
             # Now we are selecting rows that could become the ancient parents of the final results.
             # If axis == '.', then we only need to find t where t.parent in (CURRENT_ID_SET)
@@ -245,14 +246,16 @@ class Sqlite3Backend(BackendBase):
                     return self.select(select_cols + ' where t.parent = %s' % row['id'])
                 else:
                     return [row]
-            rows = sum((expand(row) for row in rows), [])
+
+            if not is_last or filters:
+                rows = sum((expand(row) for row in rows), [])
 
             rowids = [row['id'] for row in rows]
             if not rowids:
                 # No matches
                 break
-
-            for _filter in node.get('filter_list', []):
+                
+            for _filter in filters:
                 func = funcs.get(_filter['type'])
                 rowids = func(_filter, rowids)
 

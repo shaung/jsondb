@@ -95,8 +95,8 @@ class TestLists(TestBase):
         db = JsonDB.load(dbpath)
 
         path = '$.root'
-        rslt = list(db.query('$.root').values())
-        eq_(rslt, data)
+        rslt = db.query('$.root').values()
+        eq_(rslt, [data])
 
 
 class TestDicts:
@@ -144,8 +144,7 @@ class TestDicts:
 
 def test_cxt():
     with JsonDB.create({'name':'foo'}) as db:
-        eq_(db['$.name'].getone().value, 'foo')
-        eq_(db[1].value, 'foo')
+        eq_(db['$.name'].data(), 'foo')
         try:
             db[True]
         except UnsupportedOperation:
@@ -160,7 +159,7 @@ def test_large():
     db.close()
 
     db = JsonDB.load('large.db')
-    rslt = db.query('$.15.value').getone().value
+    rslt = db.query('$.15.value').getone().data()
     eq_(rslt, str(15))
 
 
@@ -224,15 +223,15 @@ class TestComposed:
 
     def test_value(self):
         rslt = self.db.query('$.Obj[?(@.name == "bar")].name').getone()
-        eq_(rslt.value, 'bar')
+        eq_(rslt.data(), 'bar')
 
     def test_id(self):
         rslt = self.db.query('$.Obj[?(@.name == "bar")]').getone()
-        eq_(rslt.id, 11)
+        eq_(rslt.id(), 11)
 
     def test_link(self):
         rslt = self.db.query('$.Obj.shadow')
-        eq_([self.db.query(x.link).getone().value for x in rslt], [self.obj['Obj'][1]['description'], self.obj['Obj'][0]['description']])
+        eq_([self.db.query(x.link()).getone().data() for x in rslt], [self.obj['Obj'][1]['description'], self.obj['Obj'][0]['description']])
 
     def test_experiment(self):
         pass

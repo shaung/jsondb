@@ -41,50 +41,105 @@ class IllegalTypeError(Error):
 class UnsupportedOperation(Error):
     pass
 
+class Nothing:
+    pass
 
 class QueryResult(object):
-    def __init__(self, seq):
+    def __init__(self, seq, queryset):
         self.seq = seq
+        self.queryset = weakref.proxy(queryset)
 
     def getone(self):
-        return next(self.seq)
+        return self.queryset._make(next(self.seq))
 
     def itervalues(self):
         for row in self.seq:
-            yield row.value
+            yield self.queryset._make(row).data()
 
     def values(self):
-        return list(row.value for row in self.seq)
+        return list(self.itervalues())
 
     def __iter__(self):
         for row in self.seq:
-            yield row
+            yield self.queryset._make(row)
 
 
 class Queryable(object):
-    def __init__(self,  backend, link_key=None, root=-1):
-        self.backend = weakref.proxy(backend)
+    def __init__(self,  backend, link_key=None, root=-1, datatype=None, data=Nothing()):
+        self.backend = weakref.proxy(backend) if isinstance(backend, weakref.ProxyTypes) else backend
         self.link_key = link_key or '@__link__'
         self.query_path_cache = {}
         self.root = root
+        self._data = data
+        self.datatype = datatype
+
+    def __hash__(self):
+        return self.root
+
+    def __len__(self):
+        raise NotImplemented
+
+    def _make(self, node):
+        root_id = node.id
+        _type = node.type
+        if _type == DICT:
+            cls = DictQueryable
+        elif _type == LIST:
+            cls = ListQueryable
+        elif _type == KEY:
+            pass
+        elif _type in (STR, UNICODE):
+            cls = StringQueryable
+        else:
+            cls = PlainQueryable
+
+        if _type in (LIST, DICT):
+            row = self.backend.get_row(node.id)
+            data = row['value']
+        else:
+            data = Nothing()
+        result = cls(backend=self.backend, link_key=self.link_key, root=root_id, datatype=_type, data=data)
+        return result
 
     def __getitem__(self, key):
-        if isinstance(key, basestring):
-            if key.startswith('$'):
-                return self.query(key)
-            else:
+        """
+        Same with query, but mainly for direct access. 
+        1. Does not require the $ prefix
+        2. Only query for direct children
+        3. Only retrive one child
+        """
+        if isinstance(key, bool):
+            raise UnsupportedOperation
+        elif isinstance(key, basestring):
+            if not key.startswith('$'):
                 key = '$.%s' % key
-                node = self.query(key).getone()
-                root_id = node.id
-                result = JsonDB(backend=self.backend, link_key=self.link_key, root=root_id)
-                return result
         elif isinstance(key, (int, long)):
-            return self.get_row(key)
+            key = '$.[%s]' % key
         else:
             raise UnsupportedOperation
 
+        node = self.query(key, one=True).getone()
+        return node
+
     def __setitem__(self, key, value):
+        """
+        If the key is not found, it will be created from the value.
+        when self is a dict:
+            update or create a child entry.
+            dict[key] = value
+        when self is a list:
+            li[index] = value
+        when self is a simple type:
+            path.value = value
+
+        :param key: key to set data
+
+        :param value: value to set to key
+        """
         if isinstance(key, basestring):
+            # TODO: self should be  a DICT
+            node = self[key]
+
             if key.startswith('$'):
                 # == feed
                 pass
@@ -92,6 +147,7 @@ class Queryable(object):
                 # == feed
                 pass
         elif isinstance(key, (int, long)):
+            # TODO: self should be a LIST
             self.feed(value, key)
         else:
             # TODO: slicing
@@ -176,7 +232,7 @@ class Queryable(object):
             ast = jsonquery.parse(path)
             self.query_path_cache[path] = json.dumps(ast)
         rslt = self.backend.jsonpath(ast=ast, parent=parent, one=one)
-        return QueryResult(rslt)
+        return QueryResult(rslt, self)
 
     xpath = query
 
@@ -223,9 +279,22 @@ class Queryable(object):
 
         return node
 
-    def data(self):
+    def id(self):
+        return self.root
+
+    def data(self, update=False):
+        if not self.datatype in (LIST, DICT):
+            if not update and not isinstance(self._data, Nothing):
+                return self._data
         root = self.backend.get_row(self.root)
-        return self.build_node(root) if root else {}
+        _data = self.build_node(root) if root else DATA_INITIAL[self.datatype]
+        if not self.datatype in (LIST, DICT):
+            self._data = _data
+        return _data
+
+    def link(self):
+        root = self.backend.get_row(self.root)
+        return root['link']
 
     def dumps(self):
         """Dump the json data"""
@@ -356,11 +425,53 @@ class JsonDB(Queryable):
         except:
             raise
 
-class ListQueryable(Queryable, list):
+class SequenceQueryable(Queryable):
+    def __len__(self):
+        return self._data
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, long)):
+            return self.data()[key]
+        # TODO: 
+        pass
+
+    def __setitem__(self, key, value):
+        # TODO: 
+        pass
+
+    def __delitem__(self, key):
+        # TODO: 
+        pass
+
+    def __iter__(self):
+        # TODO: 
+        pass
+
+    def __reversed__(self):
+        # TODO: 
+        pass
+
+    def __contains__(self, item):
+        # TODO: hash
+        return False
+
+    def __concat__(self, other):
+        # TODO: 
+        pass
+
+    def __add__(self, other):
+        # TODO: 
+        pass
+
+class ListQueryable(SequenceQueryable, list):
     pass
 
-class DictQueryable(Queryable, dict):
+class DictQueryable(SequenceQueryable, dict):
     pass
+
+class StringQueryable(SequenceQueryable):
+    def __len__(self):
+        return len(self._data)
 
 class PlainQueryable(Queryable):
     pass
