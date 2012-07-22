@@ -8,7 +8,9 @@
 """
 
 import os
-from jsondb import *
+import json
+
+import jsondb
 from nose.tools import eq_
 
 import logging
@@ -34,10 +36,10 @@ class TestBookStore:
         fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
         self.obj = json.load(open(fpath))
 
-        db = JsonDB.from_file(self.dbpath, fpath)
+        db = jsondb.from_file(self.dbpath, fpath)
         db.close()
 
-        self.db = JsonDB.load(self.dbpath)
+        self.db = jsondb.load(self.dbpath)
         #self.db.dumprows()
 
     def teardown(self):
@@ -45,7 +47,7 @@ class TestBookStore:
 
     def test_create(self):
         fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
-        db = JsonDB.create(self.obj)
+        db = jsondb.create(self.obj)
         eq_(db.dumps(), self.db.dumps())
 
     def test_data(self):

@@ -8,7 +8,8 @@
 """
 
 import os, json
-from jsondb import *
+import jsondb
+from jsondb.datatypes import *
 from nose.tools import eq_
 
 import logging
@@ -23,10 +24,10 @@ logger.debug('sqlite3 version = %s' % sqlite3.sqlite_version)
 
 class TestBase:
     def eq_dumps(self, root_type, data):
-        db = JsonDB.create(data)
+        db = jsondb.create(data)
         dbpath = db.get_path()
         db.close()
-        db = JsonDB.load(dbpath)
+        db = jsondb.load(dbpath)
         eq_(db.dumps(), json.dumps(data))
         eq_(db.data(), data)
 
@@ -62,21 +63,21 @@ class TestLists(TestBase):
     def test_list_create(self):
         """test list"""
         data = ['hello', 'world!', [1, 2.0]]
-        db = JsonDB.create(data)
+        db = jsondb.create(data)
         db.close()
         dbpath = db.get_path()
-        db = JsonDB.load(dbpath)
+        db = jsondb.load(dbpath)
         eq_(db.data(), data)
 
     def test_list(self):
         """test list"""
         data = ['hello', 'world!', [1, 2.0]]
-        db = JsonDB.create([])
+        db = jsondb.create([])
         for x in data:
             db.feed(x)
         db.close()
         dbpath = db.get_path()
-        db = JsonDB.load(dbpath)
+        db = jsondb.load(dbpath)
         eq_(db.data(), data)
 
     def test_list_merge(self):
@@ -84,7 +85,7 @@ class TestLists(TestBase):
 
         data = ['initial item', 'added item1', 'item 2', 'item3-key']
 
-        db = JsonDB.create({})
+        db = jsondb.create({})
         _list_id = db.feed({'root' : data[:1]})[0]
         db.feed(data[1], _list_id)
         for x in data[2:]:
@@ -92,7 +93,7 @@ class TestLists(TestBase):
         db.close()
         dbpath = db.get_path()
 
-        db = JsonDB.load(dbpath)
+        db = jsondb.load(dbpath)
 
         path = '$.root'
         rslt = db.query('$.root').values()
@@ -102,7 +103,7 @@ class TestLists(TestBase):
 class TestDicts:
     def setup(self):
         """test dict"""
-        db = JsonDB.create({})
+        db = jsondb.create({})
         files = ['xxx.py', 345, None, True, 'wtf', {'foo' : ['f1', 'f2']}]
         _id = db.feed({'name': []})[0]
         db.feed({'files': files}, _id)
@@ -118,7 +119,7 @@ class TestDicts:
         db.close()
         dbpath = db.get_path()
 
-        self.db = JsonDB.load(dbpath)
+        self.db = jsondb.load(dbpath)
         self.files = files
 
     def test_dict(self):
@@ -143,22 +144,22 @@ class TestDicts:
 
 
 def test_cxt():
-    with JsonDB.create({'name':'foo'}) as db:
+    with jsondb.create({'name':'foo'}) as db:
         eq_(db['$.name'].data(), 'foo')
         try:
             db[True]
-        except UnsupportedOperation:
+        except jsondb.UnsupportedOperation:
             pass
 
 
 def test_large():
-    db = JsonDB.create(path='large.db')
+    db = jsondb.create(path='large.db')
     for i in range(1000):
         li = db.feed({str(i):{'value':str(i)}})
 
     db.close()
 
-    db = JsonDB.load('large.db')
+    db = jsondb.load('large.db')
     rslt = db.query('$.15.value').getone().data()
     eq_(rslt, str(15))
 
@@ -191,7 +192,7 @@ class TestComposed:
 
         ]}
 
-        self.db = JsonDB.create(self.obj)
+        self.db = jsondb.create(self.obj)
 
     def eq(self, path, expected):
         rslt = self.db.query(path).values()

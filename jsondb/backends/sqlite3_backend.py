@@ -141,6 +141,12 @@ class Sqlite3Backend(BackendBase):
         rslt = c.fetchone()
         return rslt['value']
 
+    def get_root_type(self):
+        c = self.cursor or self.get_cursor()
+        c.execute('select type from jsondata where id = ?', (-1,))
+        rslt = c.fetchone()
+        return rslt['type']
+
     def set_link_key(self, key):
         self.update_settings('link_key', key)
 
