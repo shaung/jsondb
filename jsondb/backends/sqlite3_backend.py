@@ -31,6 +31,7 @@ class Sqlite3Backend(BackendBase):
         self.conn = None
         self.cursor = None
         self.dbpath = url.database
+        self.link_key = kws.get('link_key')
 
         overwrite = kws.get('overwrite', False)
         if overwrite or not os.path.exists(self.dbpath):
@@ -64,6 +65,13 @@ class Sqlite3Backend(BackendBase):
 
         conn.execute("create index if not exists jsondata_idx_composite on jsondata (parent, type)")
  
+        conn.execute("""create table if not exists settings
+        (key    text primary key,
+         value  blob
+        )""")
+
+        conn.execute("insert or replace into settings(key, value) values(?, ?)", ('link_key', self.link_key))
+
         conn.commit()
         self.conn = conn
 
@@ -122,6 +130,23 @@ class Sqlite3Backend(BackendBase):
             self.conn.commit()
             self.conn.close()
 
+    def update_settings(self, key, value):
+        conn = self.conn or self.get_connection()
+        conn.execute('update settings set value = ? where key = ?', (key, value))
+        conn.commit()
+
+    def get_settings(self, key):
+        c = self.cursor or self.get_cursor()
+        c.execute('select value from settings where key = ?', (key,))
+        rslt = c.fetchone()
+        return rslt['value']
+
+    def set_link_key(self, key):
+        self.update_settings('link_key', key)
+
+    def get_link_key(self):
+        return self.get_settings('link_key')
+ 
     def insert_root(self, (root_type, value)):
         c = self.cursor or self.get_cursor()
         conn = self.conn or self.get_connection()

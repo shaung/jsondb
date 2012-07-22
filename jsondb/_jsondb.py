@@ -14,6 +14,9 @@ import tempfile
 import re
 import weakref
 
+import logging
+logger = logging.getLogger(__file__)
+
 try:
     import simplejson as json
 except:
@@ -43,6 +46,20 @@ class UnsupportedOperation(Error):
 
 class Nothing:
     pass
+
+
+def get_type_class(datatype):
+    if datatype == DICT:
+        cls = DictQueryable
+    elif datatype == LIST:
+        cls = ListQueryable
+    elif datatype in (STR, UNICODE):
+        cls = StringQueryable
+    else:
+        cls = PlainQueryable
+
+    return cls
+
 
 class QueryResult(object):
     def __init__(self, seq, queryset):
@@ -82,23 +99,15 @@ class Queryable(object):
     def _make(self, node):
         root_id = node.id
         _type = node.type
-        if _type == DICT:
-            cls = DictQueryable
-        elif _type == LIST:
-            cls = ListQueryable
-        elif _type == KEY:
-            pass
-        elif _type in (STR, UNICODE):
-            cls = StringQueryable
-        else:
-            cls = PlainQueryable
+
+        cls = get_type_class(_type)
 
         if _type in (LIST, DICT):
             row = self.backend.get_row(node.id)
             data = row['value']
         else:
             data = Nothing()
-        result = cls(backend=self.backend, link_key=self.link_key, root=root_id, datatype=_type, data=data)
+        result = cls(backend=self.backend, link_key=self.backend.get_link_key(), root=root_id, datatype=_type, data=data)
         return result
 
     def __getitem__(self, key):
@@ -174,14 +183,18 @@ class Queryable(object):
         self.backend.batch_insert(pending_list)
         return id_list
 
-    def _feed(self, data, parent_id):
+    def _feed(self, data, parent_id, real_parent_id=None):
         parent = self.backend.get_row(parent_id)
         parent_type = parent['type']
+
+        if real_parent_id is None:
+            real_parent_id = parent_id
 
         id_list = []
         pending_list = []
  
         _type = TYPE_MAP.get(type(data))
+        logger.debug('feeding %s(%s) into %s(%s)' % (repr(data), DATA_TYPE_NAME[_type], parent_id, DATA_TYPE_NAME[parent_type]))
 
         if _type == DICT:
             if parent_type == DICT:
@@ -197,7 +210,7 @@ class Queryable(object):
                     self.backend.update_link(hash_id, value)
                     continue
                 key_id = self.backend.insert((hash_id, KEY, key,))
-                _ids, _pendings = self._feed(value, key_id)
+                _ids, _pendings = self._feed(value, key_id, real_parent_id=hash_id)
                 id_list += _ids
                 pending_list += _pendings
 
@@ -215,8 +228,8 @@ class Queryable(object):
         else:
             pending_list.append((parent_id, _type, data,))
 
-        if parent_type in (DICT, LIST):
-            self.backend.increase_value(parent_id, 1)
+        if parent_type in (DICT, LIST, KEY):
+            self.backend.increase_value(real_parent_id, 1)
 
         return id_list, pending_list
 
@@ -296,6 +309,15 @@ class Queryable(object):
         root = self.backend.get_row(self.root)
         return root['link']
 
+    def check_type(self, data):
+        return TYPE_MAP.get(type(data)) == self.datatype
+
+    def update(self, data):
+        if not self.check_type(data):
+            # TODO: different type
+            raise Error
+        self.backend.set_value(self.root, data)
+
     def dumps(self):
         """Dump the json data"""
         return json.dumps(self.data())
@@ -319,6 +341,11 @@ class Queryable(object):
 
     def set_value(self, id, value):
         self.backend.set_value(id, value)
+
+    def _get_value(self):
+        row = self.backend.get_row(self.root)
+        data = row['value']
+        return data
 
     def update_link(self, rowid, link=None):
         self.backend.update_link(rowid, link)
@@ -350,7 +377,6 @@ class JsonDB(Queryable):
         :param kws: Additional parameters to parse to the engine.
         """
         _backend = backends.create(path, overwrite=overwrite)
-        self = cls(backend=_backend, link_key=link_key)
 
         # guess root type from the data provided.
         root_type = TYPE_MAP.get(type(data))
@@ -362,6 +388,11 @@ class JsonDB(Queryable):
             root = ''
         else:
             root = data
+
+        class RealJsonDB(get_type_class(root_type), cls):
+            pass
+
+        self = RealJsonDB(backend=_backend, link_key=link_key)
 
         self.backend.insert_root((root_type, root))
 
@@ -411,6 +442,7 @@ class JsonDB(Queryable):
 
     def set_link_key(self, link_key):
         self.link_key = link_key
+        self.backend.set_link_key(link_key)
 
     def __enter__(self):
         return self
@@ -427,13 +459,10 @@ class JsonDB(Queryable):
 
 class SequenceQueryable(Queryable):
     def __len__(self):
-        return self._data
+        return self._get_value()
 
     def __getitem__(self, key):
-        if isinstance(key, (int, long)):
-            return self.data()[key]
-        # TODO: 
-        pass
+        return super(SequenceQueryable, self).__getitem__(key)
 
     def __setitem__(self, key, value):
         # TODO: 
@@ -471,7 +500,7 @@ class DictQueryable(SequenceQueryable, dict):
 
 class StringQueryable(SequenceQueryable):
     def __len__(self):
-        return len(self._data)
+        return len(self.data())
 
 class PlainQueryable(Queryable):
     pass
