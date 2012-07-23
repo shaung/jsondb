@@ -217,7 +217,9 @@ class Queryable(object):
         return id_list, pending_list
 
     def query(self, path, parent=None, one=False):
-        """Query the data"""
+        """
+        Query the data.
+        """
         if parent is None:
             parent = self.root
 
@@ -231,14 +233,6 @@ class Queryable(object):
         return QueryResult(rslt, self)
 
     xpath = query
-
-    def __call__(self, path, parent=None):
-        """
-        The experimental new query interface.
-        Should return a list in which each element is queryable.
-        """
-        if parent is None:
-            parent = self.root
 
     def build_node(self, row):
         node = get_initial_data(row['type'])
@@ -293,7 +287,10 @@ class Queryable(object):
         return root['link']
 
     def check_type(self, data):
-        return TYPE_MAP.get(type(data)) == self.datatype
+        new_type = TYPE_MAP.get(type(data))
+        if self.datatype in (LIST, DICT):
+            return TYPE_MAP.get(type(data)) == self.datatype
+        return True
 
     def update(self, data):
         if not self.check_type(data):
@@ -311,10 +308,6 @@ class Queryable(object):
             root = self.backend.get_row(self.root)
             rslt = self.build_node(root) if root else ''
             f.write(repr(rslt))
-
-    def dumprows(self):
-        for row in self.backend.dumprows():
-            print row
 
     def commit(self):
         self.backend.commit()
@@ -351,8 +344,22 @@ class SequenceQueryable(Queryable):
         return super(SequenceQueryable, self).__getitem__(key)
 
     def __setitem__(self, key, value):
-        # TODO: 
-        pass
+        """
+        If the key is not found, it will be created from the value.
+        when self is a dict:
+            update or create a child entry.
+            dict[key] = value
+        when self is a list:
+            li[index] = value
+        when self is a simple type:
+            path.value = value
+
+        :param key: key to set data
+
+        :param value: value to set to key
+        """
+        node = self[key]
+        node.update(value)
 
     def __delitem__(self, key):
         # TODO: 
@@ -389,5 +396,9 @@ class StringQueryable(SequenceQueryable):
         return len(self.data())
 
 class PlainQueryable(Queryable):
+    pass
+
+
+class EmptyNode(Queryable):
     pass
 

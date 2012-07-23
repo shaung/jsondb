@@ -65,3 +65,10 @@ class TestAccess(TestBase):
         eq_(self.db['glossary'].data(), self.obj['glossary'])
         eq_(self.db['glossary']._get_value(), len(self.obj['glossary']))
         eq_(len(self.db['glossary']), len(self.obj['glossary']))
+
+    def test_dict_set(self):
+        self.db['glossary']['count'] = 1
+        eq_(self.db['glossary']['count'], 1)
+
+        self.db['glossary'].update({'count': 2}
+        eq_(self.db['glossary']['count'], 2)

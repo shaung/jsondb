@@ -31,6 +31,11 @@ class BaseDB(core.Queryable):
         except:
             raise
 
+    def dumprows(self):
+        for row in self.backend.dumprows():
+            print row
+
+
 def get_class(datatype):
     class JsonDB(core.get_type_class(datatype), BaseDB):
         pass
