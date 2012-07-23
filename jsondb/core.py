@@ -337,16 +337,17 @@ class SequenceQueryable(Queryable):
         :param value: value to set to key
         """
         node = self[key]
-        if not node:
-            if self.datatype == DICT:
-                self.update({key: value})
-            elif self.datatype == LIST and isinstance(key, (int, long)):
-                if abs(key) >= len(self):
-                    raise IndexError
-                # TODO: feed list
-            return
+        if node:
+            self.backend.remove(node.root)
 
-        node.update(value)
+        if self.datatype == DICT:
+            self.update({key: value})
+        elif self.datatype == LIST and isinstance(key, (int, long)):
+            if abs(key) >= len(self):
+                raise IndexError
+            # TODO: feed list
+        else:
+            node.update(value)
 
     def __delitem__(self, key):
         # TODO: 
@@ -384,10 +385,6 @@ class SequenceQueryable(Queryable):
         # TODO: 
         pass
 
-    def __imul__(self, other):
-        # TODO: 
-        pass
-
 
 class ListQueryable(SequenceQueryable):
     def append(self, data):
@@ -401,10 +398,29 @@ class ListQueryable(SequenceQueryable):
             return self._make(rslt)
         return super(ListQueryable, self).__getitem__(key)
 
+    def __iadd__(self, other):
+        for data in other:
+            self.feed(data)
+        return self
+
 
 class DictQueryable(SequenceQueryable):
     def update(self, data):
         self.feed(data)
+
+    def clear(self):
+        self.backend.remove(self.root)
+
+    def get(self, key, default=None):
+        result = self[key]
+        return result.data() if result else default
+
+    def items(self):
+        return self.data().items()
+
+    def iteritems(self):
+        for key, value_row in self.backend.iter_dict(self.root):
+            yield key, self._make(value_row).data()
 
 class StringQueryable(SequenceQueryable):
     def __len__(self):

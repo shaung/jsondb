@@ -68,10 +68,16 @@ class TestAccess(TestBase):
     def teardown(self):
         self.db.close()
 
-    def test_query(self):
+    def test_dict_query(self):
         eq_(self.db['glossary'].data(), self.obj['glossary'])
-        eq_(self.db['glossary']._get_value(), len(self.obj['glossary']))
+
+    def test_dict_len(self):
         eq_(len(self.db['glossary']), len(self.obj['glossary']))
+        eq_(self.db['glossary']._get_value(), len(self.obj['glossary']))
+
+    def test_dict_clear(self):
+        self.db['glossary'].clear()
+        eq_(self.db['glossary'].data(), {})
 
     def test_dict_set(self):
         self.db['glossary']['count'] = 1
@@ -101,3 +107,15 @@ class TestAccess(TestBase):
             pass
         else:
             raise
+
+        # iadd
+        tag = self.db['glossary']['persons'][2]['tag']
+        tag += ['tail']
+        eq_(tag.data(), new_person['tag'] + ['tail'])
+        eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] + ['tail'])
+
+        # assign
+        self.db['glossary']['persons'][2]['tag'] = new_person['tag'] + ['tail']
+        eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] + ['tail'])
+
+

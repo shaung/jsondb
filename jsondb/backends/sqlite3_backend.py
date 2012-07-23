@@ -181,6 +181,17 @@ class Sqlite3Backend(BackendBase):
             result = islice(rowids, start, stop, step)
         return result
 
+    def iter_dict(self, parent_id):
+        c = self.cursor or self.get_cursor()
+        c.execute('select id, value from jsondata where type = ? and parent = ?', (KEY, parent_id))
+        row_keys = c.fetchall()
+        for row_key in row_keys:
+            key = row_key['value']
+            c.execute('select id, type, value, link from jsondata where parent = ?', (row_key['id'],))
+            row = c.fetchone()
+            value_id = row['id']
+            yield key, Result.from_row(row)
+
     def remove(self, id, recursive=True):
         c = self.cursor or self.get_cursor()
         if recursive:
