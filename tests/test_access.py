@@ -36,6 +36,13 @@ class TestAccess(TestBase):
         self.obj = {
             "glossary": {
                 "title": "example glossary",
+                "persons" : [{
+                    "name": "foo",
+                    "tag": ["a", "B", 1]
+                }, {
+                    "name": "bar",
+                    "tag": ["b", "B", 2]
+                }],
                 "GlossDiv": {
                     "title": "S",
                     "GlossList": {
@@ -68,7 +75,29 @@ class TestAccess(TestBase):
 
     def test_dict_set(self):
         self.db['glossary']['count'] = 1
-        eq_(self.db['glossary']['count'], 1)
+        eq_(self.db['glossary']['count'].data(), 1)
 
-        self.db['glossary'].update({'count': 2}
-        eq_(self.db['glossary']['count'], 2)
+        self.db['glossary'].update({'count': 2})
+        eq_(self.db['glossary']['count'].data(), 2)
+
+        self.db['glossary'].update({'somestr': 'foo'})
+        eq_(self.db['glossary']['somestr'].data(), 'foo')
+
+        self.db['glossary'].update({'somestr': [1, 2]})
+        eq_(self.db['glossary']['somestr'].data(), [1, 2])
+
+    def test_list(self):
+        eq_(self.db['glossary']['persons'].data(), self.obj['glossary']['persons'])
+        eq_(len(self.db['glossary']['persons']), 2)
+
+        new_person = {'name': '3rd', 'tag': ['c', 'C', 3]}
+        self.db['glossary']['persons'].append(new_person)
+        eq_(self.db['glossary']['persons'][2].data(), new_person)
+        eq_(self.db['glossary']['persons'][-1].data(), new_person)
+        try:
+            self.db['glossary']['persons'][3].data()
+            self.db['glossary']['persons'][-4].data()
+        except IndexError:
+            pass
+        else:
+            raise

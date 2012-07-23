@@ -50,7 +50,10 @@ class QueryResult(object):
         self.queryset = weakref.proxy(queryset)
 
     def getone(self):
-        return self.queryset._make(next(self.seq))
+        try:
+            return self.queryset._make(next(self.seq))
+        except StopIteration:
+            return None
 
     def itervalues(self):
         for row in self.seq:
@@ -113,38 +116,6 @@ class Queryable(object):
         node = self.query(key, one=True).getone()
         return node
 
-    def __setitem__(self, key, value):
-        """
-        If the key is not found, it will be created from the value.
-        when self is a dict:
-            update or create a child entry.
-            dict[key] = value
-        when self is a list:
-            li[index] = value
-        when self is a simple type:
-            path.value = value
-
-        :param key: key to set data
-
-        :param value: value to set to key
-        """
-        if isinstance(key, basestring):
-            # TODO: self should be  a DICT
-            node = self[key]
-
-            if key.startswith('$'):
-                # == feed
-                pass
-            else:
-                # == feed
-                pass
-        elif isinstance(key, (int, long)):
-            # TODO: self should be a LIST
-            self.feed(value, key)
-        else:
-            # TODO: slicing
-            raise UnsupportedOperation
-
     def store(self, data, parent=None):
         # TODO: store raw json data into a node.
         raise NotImplemented
@@ -158,12 +129,13 @@ class Queryable(object):
         * value.id when appending {key : value} to a dict
         * each_child.id when appending a list to a list
         """
-
+        #logger.debug('feed start')
         if parent is None:
             parent = self.root
         # TODO: should be in a transaction
         id_list, pending_list = self._feed(data, parent)
         self.backend.batch_insert(pending_list)
+        #logger.debug('feed end')
         return id_list
 
     def _feed(self, data, parent_id, real_parent_id=None):
@@ -177,7 +149,7 @@ class Queryable(object):
         pending_list = []
  
         _type = TYPE_MAP.get(type(data))
-        logger.debug('feeding %s(%s) into %s(%s)' % (repr(data), DATA_TYPE_NAME[_type], parent_id, DATA_TYPE_NAME[parent_type]))
+        #logger.debug('feeding %s(%s) into %s(%s)' % (repr(data), DATA_TYPE_NAME[_type], parent_id, DATA_TYPE_NAME[parent_type]))
 
         if _type == DICT:
             if parent_type == DICT:
@@ -192,7 +164,11 @@ class Queryable(object):
                 if key == self.link_key:
                     self.backend.update_link(hash_id, value)
                     continue
-                key_id = self.backend.insert((hash_id, KEY, key,))
+                key_id, value_id = self.backend.find_key(key, hash_id) if parent_type == DICT else (None, None)
+                if key_id is not None:
+                    self.backend.remove(key_id)
+                else:
+                    key_id = self.backend.insert((hash_id, KEY, key,))
                 _ids, _pendings = self._feed(value, key_id, real_parent_id=hash_id)
                 id_list += _ids
                 pending_list += _pendings
@@ -200,8 +176,6 @@ class Queryable(object):
         elif _type == LIST:
             # TODO: need to distinguish *appending* from *merging* 
             #       now we always assume it's appending
-            # TODO: The value field of LIST type is unused now.
-            #       can be used to store the length.
             hash_id = self.backend.insert((parent_id, _type, 0,))
             id_list.append(hash_id)
             for x in data:
@@ -212,6 +186,7 @@ class Queryable(object):
             pending_list.append((parent_id, _type, data,))
 
         if parent_type in (DICT, LIST, KEY):
+            #  Use the value field to store the length of LIST / DICT.
             self.backend.increase_value(real_parent_id, 1)
 
         return id_list, pending_list
@@ -341,6 +316,9 @@ class SequenceQueryable(Queryable):
         return self._get_value()
 
     def __getitem__(self, key):
+        if isinstance(key, slice):
+            rslt = self.backend.iter_slice(self.root, key.start, key.stop, key.step)
+            return QueryResult(rslt, self)
         return super(SequenceQueryable, self).__getitem__(key)
 
     def __setitem__(self, key, value):
@@ -359,6 +337,15 @@ class SequenceQueryable(Queryable):
         :param value: value to set to key
         """
         node = self[key]
+        if not node:
+            if self.datatype == DICT:
+                self.update({key: value})
+            elif self.datatype == LIST and isinstance(key, (int, long)):
+                if abs(key) >= len(self):
+                    raise IndexError
+                # TODO: feed list
+            return
+
         node.update(value)
 
     def __delitem__(self, key):
@@ -385,18 +372,194 @@ class SequenceQueryable(Queryable):
         # TODO: 
         pass
 
-class ListQueryable(SequenceQueryable, list):
-    pass
+    def __iadd__(self, other):
+        # TODO: 
+        pass
 
-class DictQueryable(SequenceQueryable, dict):
-    pass
+    def __isub__(self, other):
+        # TODO: 
+        pass
+
+    def __imul__(self, other):
+        # TODO: 
+        pass
+
+    def __imul__(self, other):
+        # TODO: 
+        pass
+
+
+class ListQueryable(SequenceQueryable):
+    def append(self, data):
+        self.feed(data)
+
+    def __getitem__(self, key):
+        if isinstance(key, (int, long)):
+            if abs(key) >= len(self):
+                raise IndexError
+            rslt = self.backend.get_nth_child(self.root, key)
+            return self._make(rslt)
+        return super(ListQueryable, self).__getitem__(key)
+
+
+class DictQueryable(SequenceQueryable):
+    def update(self, data):
+        self.feed(data)
 
 class StringQueryable(SequenceQueryable):
     def __len__(self):
         return len(self.data())
 
 class PlainQueryable(Queryable):
-    pass
+    def __cmp__(self, other):
+        pass
+
+    def __eq__(self, other):
+        pass
+
+    def __ne__(self, other):
+        pass
+
+    def __lt__(self, other):
+        pass
+
+    def __gt__(self, other):
+        pass
+
+    def __le__(self, other):
+        pass
+
+    def __ge__(self, other):
+        pass
+
+    def __pos__(self, other):
+        pass
+
+    def __neg__(self, other):
+        pass
+
+    def __abs__(self, other):
+        pass
+ 
+    def __invert__(self, other):
+        pass
+ 
+    def __add__(self, other):
+        pass
+
+    def __sub__(self, other):
+        pass
+
+    def __mul__(self, other):
+        pass
+
+    def __floordiv__(self, other):
+        pass
+
+    def __div__(self, other):
+        pass
+
+    def __truediv__(self, other):
+        pass
+
+    def __mod_(self, other):
+        pass
+
+    def __pow__(self, other):
+        pass
+
+    def __lshift__(self, other):
+        pass
+
+    def __rshift__(self, other):
+        pass
+
+    def __and__(self, other):
+        pass
+
+    def __or__(self, other):
+        pass
+
+    def __xor__(self, other):
+        pass
+
+    def __radd__(self, other):
+        pass
+
+    def __rsub__(self, other):
+        pass
+
+    def __rmul__(self, other):
+        pass
+
+    def __rfloordiv__(self, other):
+        pass
+
+    def __rdiv__(self, other):
+        pass
+
+    def __rtruediv__(self, other):
+        pass
+
+    def __rmod_(self, other):
+        pass
+
+    def __rpow__(self, other):
+        pass
+
+    def __rlshift__(self, other):
+        pass
+
+    def __rrshift__(self, other):
+        pass
+
+    def __rand__(self, other):
+        pass
+
+    def __ror__(self, other):
+        pass
+
+    def __rxor__(self, other):
+        pass
+
+    def __iadd__(self, other):
+        pass
+
+    def __isub__(self, other):
+        pass
+
+    def __imul__(self, other):
+        pass
+
+    def __ifloordiv__(self, other):
+        pass
+
+    def __idiv__(self, other):
+        pass
+
+    def __itruediv__(self, other):
+        pass
+
+    def __imod_(self, other):
+        pass
+
+    def __ipow__(self, other):
+        pass
+
+    def __ilshift__(self, other):
+        pass
+
+    def __irshift__(self, other):
+        pass
+
+    def __iand__(self, other):
+        pass
+
+    def __ior__(self, other):
+        pass
+
+    def __ixor__(self, other):
+        pass
 
 
 class EmptyNode(Queryable):

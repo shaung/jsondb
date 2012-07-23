@@ -147,6 +147,47 @@ class Sqlite3Backend(BackendBase):
         rslt = c.fetchone()
         return rslt['type']
 
+    def find_key(self, key, parent_id):
+        c = self.cursor or self.get_cursor()
+        c.execute('select id from jsondata where type = ? and value = ? and parent = ?', (KEY, key, parent_id))
+        rslt = c.fetchone()
+        key_id = rslt['id'] if rslt else None
+        if key_id is None:
+            return None, None
+
+        c.execute('select id from jsondata where parent = ?', (key_id,))
+        rslt = c.fetchone()
+        return key_id, rslt['id'] if rslt else None
+
+    def get_nth_child(self, parent_id, offset):
+        c = self.cursor or self.get_cursor()
+        if offset >= 0:
+            order_clause = 'order by id limit 1 offset ?'
+        else:
+            offset = offset * -1 - 1
+            order_clause = 'order by id desc limit 1 offset ?'
+        c.execute('select rowid as rowno, id, parent, type, link from jsondata where parent = ? %s' % order_clause, (parent_id, offset))
+        rslt = c.fetchone()
+        return Result.from_row(rslt)
+
+    def iter_slice(self, id, start=None, stop=None, step=None):
+        c = self.cursor or self.get_cursor()
+        c.execute('select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t order by id')
+        s = slice(start, stop, step)
+        rowids = (row['id'] for row in c.fetchall())
+        if start < 0 or stop < 0 or step < 0:
+            result = list(rowids)[s]
+        else:
+            result = islice(rowids, start, stop, step)
+        return result
+
+    def remove(self, id, recursive=True):
+        c = self.cursor or self.get_cursor()
+        if recursive:
+            c.execute('delete from jsondata where ancestors_in(parent, ?)', (repr((id,)),))
+        else:
+            c.execute('delete from jsondata where parent = ?', (id,))
+
     def set_link_key(self, key):
         self.update_settings('link_key', key)
 
