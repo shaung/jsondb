@@ -129,6 +129,17 @@ class TestAccess(TestBase):
         else:
             raise
 
+        # imul
+        self.db['glossary']['persons'][2]['tag'] *= 3
+        eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] * 3)
+
+        self.db['glossary']['persons'][2]['tag'] = new_person['tag']
+
+        # mul
+        tag = self.db['glossary']['persons'][2]['tag']
+        eq_(tag * 3, new_person['tag'] * 3)
+        eq_(3 * tag, 3 * new_person['tag'])
+
         # iadd
         tag = self.db['glossary']['persons'][2]['tag']
         tag += ['tail']
@@ -188,4 +199,49 @@ class TestAccess(TestBase):
 
         self.db['glossary']['title'] = 'x'
         eq_(self.db['glossary']['title'], 'x')
+
+
+def test_sample():
+    import jsondb
+    
+    # Create from nothing
+    db = jsondb.create({})
+
+    # Insert
+    db['name'] = 'foo'
+
+    db['friends'] = []
+    for i in range(3):
+        db['friends'].append({
+            'id' : i,
+            'name': chr(97 + i),
+        })
+
+    # It works like an ordinary dict
+    assert db['name'] == 'foo'
+    assert db['friends'][0]['id'] == 0
+    assert len(db['friends']) == 3
+    assert db.get('nonexists', 'notfound') == 'notfound'
+
+    # Get the *real* data
+    assert db.data() == {
+        'name' : 'foo',
+        'friends': [
+            {'id' : 0, 'name' : 'a'},
+            {'id' : 1, 'name' : 'b'},
+            {'id' : 2, 'name' : 'c'},
+        ]
+    }
+   
+    # Query using jsonquery
+    db.query('$.name').getone() == 'foo'
+
+    # Iterating the query result
+    #   => "a b c"
+    for x in db.query('$.friends.name'):
+        print x.data(),
+
+    # Conditonal query
+    eq_(db.query('$.friends[?(@.id = 1)].name').getone(), 'b')
+
 
