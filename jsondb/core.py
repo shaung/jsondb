@@ -38,6 +38,10 @@ def get_type_class(datatype):
         cls = ListQueryable
     elif datatype in (STR, UNICODE):
         cls = StringQueryable
+    elif datatype == FLOAT:
+        cls = NumberQueryable
+    elif datatype in (INT, BOOL):
+        cls = IntegerQueryable
     else:
         cls = PlainQueryable
 
@@ -81,6 +85,29 @@ class Queryable(object):
 
     def __len__(self):
         raise NotImplemented
+
+    def __getattr__(self, name):
+        cls = get_datatype_class(self.datatype)
+        try:
+            attr = getattr(cls, name)
+        except:
+            raise
+        else:
+            return getattr(self.data(), name)
+
+    def __cmp__(self, other):
+        if isinstance(other, Queryable):
+            if other.datatype != self.datatype:
+                return False
+            other_data = other.data()
+        else:
+            other_data = other
+
+        self_data = self.data()
+        if self_data == other_data:
+            return 0
+        else:
+            return 1 if self_data > other_data else -1
 
     def _make(self, node):
         root_id = node.id
@@ -370,8 +397,10 @@ class SequenceQueryable(Queryable):
         pass
 
     def __add__(self, other):
-        logger.debug('add')
         return self.data() + other
+
+    def __radd__(self, other):
+        return other + self.data()
 
     def __iadd__(self, other):
         logger.debug('iadd seq')
@@ -385,6 +414,14 @@ class SequenceQueryable(Queryable):
     def __imul__(self, other):
         # TODO: 
         pass
+
+    def max(self):
+        ids = (x for x in self.backend.iter_slice(self.root))
+        return max(self.backend.get_row(id)['value'] for id in ids)
+
+    def min(self):
+        ids = (x for x in self.backend.iter_slice(self.root))
+        return min(self.backend.get_row(id)['value'] for id in ids)
 
 
 class ListQueryable(SequenceQueryable):
@@ -424,160 +461,190 @@ class DictQueryable(SequenceQueryable):
         for key, value_row in self.backend.iter_dict(self.root):
             yield key, self._make(value_row).data()
 
-class StringQueryable(SequenceQueryable):
-    def __len__(self):
-        return len(self.data())
 
 class PlainQueryable(Queryable):
-    def __cmp__(self, other):
-        pass
-
-    def __eq__(self, other):
-        pass
-
-    def __ne__(self, other):
-        pass
-
-    def __lt__(self, other):
-        pass
-
-    def __gt__(self, other):
-        pass
-
-    def __le__(self, other):
-        pass
-
-    def __ge__(self, other):
-        pass
-
-    def __pos__(self, other):
-        pass
-
-    def __neg__(self, other):
-        pass
-
-    def __abs__(self, other):
-        pass
- 
-    def __invert__(self, other):
-        pass
- 
-    def __add__(self, other):
-        pass
-
-    def __sub__(self, other):
-        pass
-
-    def __mul__(self, other):
-        pass
-
-    def __floordiv__(self, other):
-        pass
-
-    def __div__(self, other):
-        pass
-
-    def __truediv__(self, other):
-        pass
-
-    def __mod_(self, other):
-        pass
-
-    def __pow__(self, other):
-        pass
-
-    def __lshift__(self, other):
-        pass
-
-    def __rshift__(self, other):
-        pass
-
-    def __and__(self, other):
-        pass
-
-    def __or__(self, other):
-        pass
-
-    def __xor__(self, other):
-        pass
-
-    def __radd__(self, other):
-        pass
-
-    def __rsub__(self, other):
-        pass
-
-    def __rmul__(self, other):
-        pass
-
-    def __rfloordiv__(self, other):
-        pass
-
-    def __rdiv__(self, other):
-        pass
-
-    def __rtruediv__(self, other):
-        pass
-
-    def __rmod_(self, other):
-        pass
-
-    def __rpow__(self, other):
-        pass
-
-    def __rlshift__(self, other):
-        pass
-
-    def __rrshift__(self, other):
-        pass
-
-    def __rand__(self, other):
-        pass
-
-    def __ror__(self, other):
-        pass
-
-    def __rxor__(self, other):
-        pass
-
     def __iadd__(self, other):
-        pass
+        data = self.__add__(other)
+        self.update(data)
 
     def __isub__(self, other):
-        pass
+        data = self.__sub__(other)
+        self.update(data)
 
     def __imul__(self, other):
-        pass
+        data = self.__mul__(other)
+        self.update(data)
 
     def __ifloordiv__(self, other):
-        pass
+        data = self.__floordiv__(other)
+        self.update(data)
 
     def __idiv__(self, other):
-        pass
+        data = self.__div__(other)
+        self.update(data)
 
     def __itruediv__(self, other):
         pass
 
     def __imod_(self, other):
-        pass
+        data = self.__mod__(other)
+        self.update(data)
 
     def __ipow__(self, other):
-        pass
+        data = self.__pow__(other)
+        self.update(data)
 
     def __ilshift__(self, other):
-        pass
+        data = self.__lshift__(other)
+        self.update(data)
 
     def __irshift__(self, other):
-        pass
+        data = self.__rshift__(other)
+        self.update(data)
 
     def __iand__(self, other):
-        pass
+        data = self.__and__(other)
+        self.update(data)
 
     def __ior__(self, other):
-        pass
+        data = self.__or__(other)
+        self.update(data)
 
     def __ixor__(self, other):
+        data = self.__xor__(other)
+        self.update(data)
+
+
+class StringQueryable(SequenceQueryable, PlainQueryable):
+    def __len__(self):
+        return len(self.data())
+
+    def __mul__(self, other):
+        return self.data() * other
+
+    __rmul__ = __mul__
+
+    def __mod__(self, data):
+        return self.data() % data
+
+    def __contains__(self, item):
+        return item in self.data()
+
+    def max(self):
+        return max(self.data())
+
+    def min(self):
+        return min(self.data())
+
+    def index(self, item):
+        return self.data().index(item)
+
+    def count(self, item):
+        return self.data().count(item)
+
+    def __getitem__(self, key):
+        return self.data()[key]
+
+    def __setitem__(self, key, value):
+        if isinstance(value, StringQueryable):
+            return
+        data = self.data()
+        data[key] = value
+        self.update(data)
+
+
+class NumberQueryable(PlainQueryable):
+    def __pos__(self):
+        return self.data().__pos__()
+
+    def __neg__(self, other):
+        return self.data().__neg__()
+
+    def __abs__(self, other):
+        return self.data().__abs__()
+ 
+    def __add__(self, other):
+        return self.data() + other
+
+    def __sub__(self, other):
+        return self.data() - other
+
+    def __mul__(self, other):
+        return self.data() * other
+
+    def __floordiv__(self, other):
+        return self.data() // other
+
+    def __div__(self, other):
+        return self.data() / other
+
+    def __truediv__(self, other):
+        return self.data().__truediv__(other)
+
+    def __mod__(self, other):
+        return self.data() % other
+
+    def __pow__(self, other):
+        return self.data() ** other
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __rsub__(self, other):
+        return other - self.data()
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __rfloordiv__(self, other):
+        return other // self.data()
+
+    def __rdiv__(self, other):
+        return other // self.data()
+
+    def __rtruediv__(self, other):
         pass
+
+    def __rmod_(self, other):
+        return other % self.data()
+
+    def __rpow__(self, other):
+        return other ** self.data()
+
+
+class IntegerQueryable(NumberQueryable):
+    def __invert__(self, other):
+        return self.data().__invert__()
+
+    def __lshift__(self, other):
+        return self.data() << other
+
+    def __rshift__(self, other):
+        return self.data() >> other
+
+    def __and__(self, other):
+        return self.data() & other
+
+    def __or__(self, other):
+        return self.data() | other
+
+    def __xor__(self, other):
+        return self.data() ^ other
+
+    def __rlshift__(self, other):
+        return other << self.data()
+
+    def __rrshift__(self, other):
+        return other >> self.data()
+
+    def __rand__(self, other):
+        return self.__and__(other)
+
+    def __ror__(self, other):
+        return self.__or__(other)
+
+    def __rxor__(self, other):
+        return self.__xor__(other)
 
 
 class EmptyNode(Queryable):

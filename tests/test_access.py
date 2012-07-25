@@ -30,6 +30,20 @@ class TestBase:
         eq_(db.dumps(), json.dumps(data))
         eq_(db.data(), data)
 
+class TestFloat(TestBase):
+    def setup(self):
+        self.obj = 999.99
+        self.db = jsondb.create(self.obj)
+
+    def teardown(self):
+        self.db.close()
+
+    def test_add(self):
+        eq_(self.db + 1, self.obj + 1)
+ 
+    def test_radd(self):
+        eq_(1 + self.db, 1 + self.obj)
+ 
 
 class TestAccess(TestBase):
     def setup(self):
@@ -133,4 +147,45 @@ class TestAccess(TestBase):
         self.db['glossary']['persons'][0] = new_person
         eq_(self.db['glossary']['persons'][0].data(), new_person)
 
+    def test_int(self):
+        num = self.db['glossary']['persons'][0]['tag'][-1]
+        vl = self.obj['glossary']['persons'][0]['tag'][-1]
+        eq_(num, vl)
+        i = 2
+        eq_(num + i, vl + i)
+        eq_(num - i, vl - i)
+        eq_(num * i, vl * i)
+        eq_(num / i, vl / i)
+        eq_(num // i, vl // i)
+        eq_(num % i, vl % i)
+        eq_(num ** i, vl ** i)
+        eq_(num & i, vl & i)
+        eq_(num | i, vl | i)
+        eq_(num ^ i, vl ^ i)
+
+    def test_string(self):
+        s = self.db['glossary']['title']
+        v = self.db['glossary']['title']
+        eq_(s, v)
+        eq_(s.data(), v)
+        other = 'test'
+        eq_(s + other, v + other)
+        eq_(other + s, other + v)
+        eq_(s * 2, v * 2)
+        eq_(2 * s, 2 * v)
+        eq_(s[2], v[2])
+        eq_(s[1:-1:-1], v[1:-1:-1])
+        eq_(len(s), len(v))
+        eq_('l' in s, 'l' in v)
+        eq_('l' not in s, 'l' not in v)
+
+        eq_(s.index('l'), v.index('l'))
+        eq_(s.count('e'), v.count('e'))
+        eq_(s.lower(), v.lower())
+
+        self.db['glossary']['fmt'] = '-%s-'
+        eq_(self.db['glossary']['fmt'] % 'hello', '-hello-')
+
+        self.db['glossary']['title'] = 'x'
+        eq_(self.db['glossary']['title'], 'x')
 
