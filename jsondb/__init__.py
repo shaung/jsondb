@@ -71,7 +71,7 @@ def create(data={}, path=None, overwrite=True, link_key=None, **kws):
         root = data
 
     cls = get_class(root_type)
-    self = cls(backend=_backend, link_key=link_key)
+    self = cls(datatype=root_type, backend=_backend, link_key=link_key)
 
     self.backend.insert_root((root_type, root))
 
