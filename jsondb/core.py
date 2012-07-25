@@ -364,6 +364,7 @@ class SequenceQueryable(Queryable):
         if node:
             self.backend.remove(node.root)
 
+        logging.debug(DATA_TYPE_NAME.get(self.datatype))
         if self.datatype == DICT:
             self.update({key: value})
         elif self.datatype == LIST and isinstance(key, (int, long)):
@@ -392,28 +393,11 @@ class SequenceQueryable(Queryable):
         # TODO: hash
         return False
 
-    def __concat__(self, other):
-        # TODO: 
-        pass
-
     def __add__(self, other):
         return self.data() + other
 
     def __radd__(self, other):
         return other + self.data()
-
-    def __iadd__(self, other):
-        logger.debug('iadd seq')
-        # TODO: 
-        pass
-
-    def __isub__(self, other):
-        # TODO: 
-        pass
-
-    def __imul__(self, other):
-        # TODO: 
-        pass
 
     def max(self):
         ids = (x for x in self.backend.iter_slice(self.root))
@@ -436,10 +420,25 @@ class ListQueryable(SequenceQueryable):
             return self._make(rslt)
         return super(ListQueryable, self).__getitem__(key)
 
+    def __mul__(self, other):
+        return self.data() * other
+
+    __rmul__ = __mul__
+
     def __iadd__(self, other):
-        logger.debug('iadd list')
         for data in other:
             self.feed(data)
+        return self
+
+    def __imul__(self, times):
+        if times <= 0:
+            self.backend.remove(self.root)
+        else:
+            data = self.data()
+            for i in range(times - 1):
+                for item in data:
+                    self.feed(item)
+
         return self
 
 
