@@ -372,7 +372,7 @@ class Sqlite3Backend(BackendBase):
         tables = {}
         for key, childnodes in parse_atom.children.items():
             # TODO: Check the child exists and passes the condition
-            condition = re.sub(key, '%s.type > 0 and %s.value' % (key, key), condition)
+            condition = re.sub(key, '%s.type >= 0 and %s.value' % (key, key), condition)
             subquery = ''
             for i, node in enumerate(childnodes):
                 is_last = (i == len(childnodes) - 1)
@@ -398,7 +398,7 @@ class Sqlite3Backend(BackendBase):
             tables[key] = subquery
 
         clause = 'select %s from %s where (%s) and (%s)' % ('*', ', '.join('(%s) %s' % (v, k) for k, v in tables.items()), condition, 
-                    ' or '.join(['%s.type > 0' % k for k in tables]))
+                    ' or '.join(['%s.type >= 0' % k for k in tables]))
         stmt = 'select t.id from jsondata t where t.id in (%s) and exists (%s)' % (','.join(str(x) for x in rowids), clause)
 
         rows = self.select(stmt)
