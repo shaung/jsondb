@@ -192,12 +192,14 @@ class Sqlite3Backend(BackendBase):
             value_id = row['id']
             yield key, Result.from_row(row)
 
-    def remove(self, id, recursive=True):
+    def remove(self, id, recursive=True, include_self=False):
         c = self.cursor or self.get_cursor()
         if recursive:
             c.execute('delete from jsondata where ancestors_in(parent, ?)', (repr((id,)),))
         else:
             c.execute('delete from jsondata where parent = ?', (id,))
+        if include_self:
+            c.execute('delete from jsondata where id = ?', (id,))
 
     def set_link_key(self, key):
         self.update_settings('link_key', key)
@@ -218,6 +220,7 @@ class Sqlite3Backend(BackendBase):
 
     def batch_insert(self, pending_list=[]):
         c = self.cursor or self.get_cursor()
+        logging.debug(repr(pending_list))
         c.executemany(SQL_INSERT, pending_list)
 
     def iter_children(self, parent_id, value=None, only_one=False):

@@ -79,6 +79,13 @@ class TestAccess(TestBase):
         self.db['glossary'].clear()
         eq_(self.db['glossary'].data(), {})
 
+    def test_dict_delete(self):
+        g = self.db['glossary']
+        del g['title']
+        data = self.obj['glossary']
+        del data['title']
+        eq_(g.data(), data)
+
     def test_dict_set(self):
         self.db['glossary']['count'] = 1
         eq_(self.db['glossary']['count'].data(), 1)
@@ -114,8 +121,16 @@ class TestAccess(TestBase):
         eq_(tag.data(), new_person['tag'] + ['tail'])
         eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] + ['tail'])
 
-        # assign
+        # iadd
+        self.db['glossary']['persons'][2]['tag'] += ['other']
+        eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] + ['tail', 'other'])
+
+        # dict assign
         self.db['glossary']['persons'][2]['tag'] = new_person['tag'] + ['tail']
         eq_(self.db['glossary']['persons'][2]['tag'].data(), new_person['tag'] + ['tail'])
+
+        # list assign
+        self.db['glossary']['persons'][0] = new_person
+        eq_(self.db['glossary']['persons'][0].data(), new_person)
 
 

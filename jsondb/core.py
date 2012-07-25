@@ -323,19 +323,16 @@ class SequenceQueryable(Queryable):
 
     def __setitem__(self, key, value):
         """
-        If the key is not found, it will be created from the value.
-        when self is a dict:
-            update or create a child entry.
-            dict[key] = value
-        when self is a list:
-            li[index] = value
-        when self is a simple type:
-            path.value = value
+        If the value associated to the key already exists, it will be override by value.
 
         :param key: key to set data
 
         :param value: value to set to key
         """
+
+        if isinstance(value, Queryable):
+            return
+
         node = self[key]
         if node:
             self.backend.remove(node.root)
@@ -345,23 +342,26 @@ class SequenceQueryable(Queryable):
         elif self.datatype == LIST and isinstance(key, (int, long)):
             if abs(key) >= len(self):
                 raise IndexError
+            node.feed(value)
             # TODO: feed list
         else:
             node.update(value)
 
     def __delitem__(self, key):
-        # TODO: 
-        pass
+        key_id, _ = self.backend.find_key(key, self.root)
+        if key_id is not None:
+            self.backend.remove(key_id, include_self=True)
 
     def __iter__(self):
-        # TODO: 
-        pass
+        for x in self.backend.iter_slice(self.root):
+            yield self._make(x)
 
     def __reversed__(self):
-        # TODO: 
-        pass
+        for x in self.backend.iter_slice(self.root, None, None, -1):
+            yield self._make(x)
 
     def __contains__(self, item):
+        logger.debug('check contains')
         # TODO: hash
         return False
 
@@ -370,10 +370,11 @@ class SequenceQueryable(Queryable):
         pass
 
     def __add__(self, other):
-        # TODO: 
-        pass
+        logger.debug('add')
+        return self.data() + other
 
     def __iadd__(self, other):
+        logger.debug('iadd seq')
         # TODO: 
         pass
 
@@ -399,6 +400,7 @@ class ListQueryable(SequenceQueryable):
         return super(ListQueryable, self).__getitem__(key)
 
     def __iadd__(self, other):
+        logger.debug('iadd list')
         for data in other:
             self.feed(data)
         return self
