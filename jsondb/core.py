@@ -156,13 +156,11 @@ class Queryable(object):
         * value.id when appending {key : value} to a dict
         * each_child.id when appending a list to a list
         """
-        #logger.debug('feed start')
         if parent is None:
             parent = self.root
         # TODO: should be in a transaction
         id_list, pending_list = self._feed(data, parent)
         self.backend.batch_insert(pending_list)
-        #logger.debug('feed end')
         return id_list
 
     def _feed(self, data, parent_id, real_parent_id=None):
@@ -176,7 +174,6 @@ class Queryable(object):
         pending_list = []
  
         _type = TYPE_MAP.get(type(data))
-        #logger.debug('feeding %s(%s) into %s(%s)' % (repr(data), DATA_TYPE_NAME[_type], parent_id, DATA_TYPE_NAME[parent_type]))
 
         if _type == DICT:
             if parent_type == DICT:
@@ -273,6 +270,9 @@ class Queryable(object):
 
     def id(self):
         return self.root
+
+    def get_datatype(self):
+        return get_datatype_class(self.datatype)
 
     def data(self, update=False):
         if not self.datatype in (LIST, DICT):
