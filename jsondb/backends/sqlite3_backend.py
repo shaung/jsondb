@@ -172,7 +172,7 @@ class Sqlite3Backend(BackendBase):
 
     def iter_slice(self, id, start=None, stop=None, step=None):
         c = self.cursor or self.get_cursor()
-        c.execute('select rowid as rowno, t.id as id, t.parent as parent, t.type as type from jsondata t order by id')
+        c.execute('select id, type from jsondata where parent = ? order by id', (id,))
         s = slice(start, stop, step)
         rowids = (row['id'] for row in c.fetchall())
         if start < 0 or stop < 0 or step < 0:
@@ -220,7 +220,6 @@ class Sqlite3Backend(BackendBase):
 
     def batch_insert(self, pending_list=[]):
         c = self.cursor or self.get_cursor()
-        logging.debug(repr(pending_list))
         c.executemany(SQL_INSERT, pending_list)
 
     def iter_children(self, parent_id, value=None, only_one=False):
@@ -250,6 +249,12 @@ class Sqlite3Backend(BackendBase):
         rslt = c.fetchone()
         return rslt
 
+    def get_row_type(self, rowid):
+        c = self.cursor or self.get_cursor()
+        c.execute('select type from jsondata where id = ?', (rowid, ))
+        rslt = c.fetchone()
+        return rslt['type'] if rslt else None
+ 
     def update_link(self, rowid, link=None):
         c = self.cursor or self.get_cursor()
         c.execute('update jsondata set link = ? where id = ?', (link, rowid, ))
@@ -278,6 +283,7 @@ class Sqlite3Backend(BackendBase):
 
     def jsonpath(self, ast, parent=-1, one=False):
         parent_ids = [parent]
+        parent_types = [self.get_row_type(id) for id in parent_ids]
         funcs = {
             'predicate' : self.parse_predicate,
             'union'     : self.parse_union,
@@ -312,7 +318,17 @@ class Sqlite3Backend(BackendBase):
             #    note: merge the result in python, not the sql.
             if axis == '.':
                 if name:
-                    rows = self.select(select_cols + ' where t.parent in (select distinct id from jsondata where parent in (%s) and type = %s and value = \'%s\') order by id asc' % (','.join(map(str, parent_ids)), KEY, name))
+                    # Expand lists
+                    for i, parent_type in enumerate(reversed(parent_types)):
+                        if parent_type == LIST:
+                            parent_ids[i:i+1] = self.iter_slice(parent_ids[i])
+                    if not parent_ids:
+                        rows = []
+                    else:
+                        rows = self.select('%s where t.parent in ('
+                            'select distinct id from jsondata'
+                            ' where parent in (%s) and type = %s and value = \'%s\')'
+                            ' order by id asc' % (select_cols, ','.join(map(str, parent_ids)), KEY, name))
                 else:
                     # TODO: "$.*.author"
                     rows = []
@@ -349,6 +365,7 @@ class Sqlite3Backend(BackendBase):
                 rows = [r for r in rows if r['id'] in rowids]
             else:
                 parent_ids = rowids
+                parent_types = [r['type'] for r in rows if r['id'] in rowids]
 
         for row in rows:
             yield Result.from_row(row)

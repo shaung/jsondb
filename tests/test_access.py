@@ -245,3 +245,5 @@ def test_sample():
     eq_(db.query('$.friends[?(@.id = 1)].name').getone(), 'b')
 
 
+    friends = db['friends']
+    eq_(friends.query('$.name').values(), ['a', 'b', 'c'])
