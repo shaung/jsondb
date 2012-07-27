@@ -28,7 +28,7 @@ Usage
     assert len(db['friends']) == 3
     assert db.get('nonexists', 'notfound') == 'notfound'
 
-    # Get the *real* data
+    # Get the data
     assert db.data() == {
         'name' : 'foo',
         'friends': [
@@ -47,7 +47,8 @@ Usage
         print x.data(),
 
     # Conditonal query
-    eq_(db.query('$.friends[?(@.id = 1)].name').getone(), 'b')
+    #   => 'b'
+    print db.query('$.friends[?(@.id = 1)].name').getone()
 
 
 License
