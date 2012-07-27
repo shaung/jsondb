@@ -42,6 +42,7 @@ TYPE_MAP = {
     types.DictType    : DICT,
 }
 
+
 def get_datatype_class(_type):
     if _type == NIL:
         return None
@@ -61,4 +62,3 @@ class Result(namedtuple('Result', ('id', 'type', 'link'))):
     def from_row(cls, row):
         self = cls(row['id'], row['type'], row['link'])
         return self
-

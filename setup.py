@@ -35,4 +35,3 @@ setup(
         'jsondb.backends',
     ],
 )
-

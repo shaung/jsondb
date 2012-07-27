@@ -13,6 +13,7 @@ from datatypes import *
 import backends
 from error import *
 
+
 class BaseDB(core.Queryable):
     def set_link_key(self, link_key):
         self.link_key = link_key
@@ -77,7 +78,7 @@ def create(data={}, path=None, overwrite=True, link_key=None, **kws):
 
     if root_type == DICT:
         for k, v in data.iteritems():
-            self.feed({k:v})
+            self.feed({k: v})
     elif root_type == LIST:
         for x in data:
             self.feed(x)
@@ -122,4 +123,3 @@ def from_file(dbpath, filepath, **kws):
     else:
         self.commit()
     return self
-

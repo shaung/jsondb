@@ -27,6 +27,7 @@ import jsonquery
 
 from error import *
 
+
 class Nothing:
     pass
 
@@ -125,7 +126,7 @@ class Queryable(object):
 
     def __getitem__(self, key):
         """
-        Same with query, but mainly for direct access. 
+        Same with query, but mainly for direct access.
         1. Does not require the $ prefix
         2. Only query for direct children
         3. Only retrive one child
@@ -146,7 +147,7 @@ class Queryable(object):
     def store(self, data, parent=None):
         # TODO: store raw json data into a node.
         raise NotImplemented
- 
+
     def feed(self, data, parent=None):
         """Append data to the specified parent.
 
@@ -172,7 +173,7 @@ class Queryable(object):
 
         id_list = []
         pending_list = []
- 
+
         _type = TYPE_MAP.get(type(data))
 
         if _type == DICT:
@@ -182,7 +183,7 @@ class Queryable(object):
                 hash_id = self.backend.insert((parent_id, _type, 0,))
             elif parent_id != self.root:
                 print parent_id, parent_type
-                raise IllegalTypeError, 'Parent node should be either DICT or LIST.'
+                raise IllegalTypeError('Parent node should be either DICT or LIST.')
 
             for key, value in data.iteritems():
                 if key == self.link_key:
@@ -198,7 +199,7 @@ class Queryable(object):
                 pending_list += _pendings
 
         elif _type == LIST:
-            # TODO: need to distinguish *appending* from *merging* 
+            # TODO: need to distinguish *appending* from *merging*
             #       now we always assume it's appending
             hash_id = self.backend.insert((parent_id, _type, 0,))
             id_list.append(hash_id)
@@ -240,7 +241,7 @@ class Queryable(object):
 
         if _type == KEY:
             for child in self.backend.iter_children(row['id']):
-                node = {_value : self.build_node(child)}
+                node = {_value: self.build_node(child)}
                 break
 
         elif _type in (LIST, DICT):
@@ -561,7 +562,7 @@ class NumberQueryable(PlainQueryable):
 
     def __abs__(self, other):
         return self.data().__abs__()
- 
+
     def __add__(self, other):
         return self.data() + other
 
@@ -648,4 +649,3 @@ class IntegerQueryable(NumberQueryable):
 
 class EmptyNode(Queryable):
     pass
-

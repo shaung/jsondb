@@ -2,8 +2,10 @@
 
 from urlparse import urlparse, urlunsplit
 
+
 class Error(Exception):
     pass
+
 
 class URL(object):
     def __init__(self, driver, username=None, password=None,
@@ -27,6 +29,5 @@ class URL(object):
         if isinstance(url, basestring):
             url = urlparse(url)
         self = cls(driver=url.scheme, username=url.username, password=url.password,
-            host=url.hostname, port=url.port, database=url.path)
+                   host=url.hostname, port=url.port, database=url.path)
         return self
-

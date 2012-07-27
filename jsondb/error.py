@@ -6,6 +6,7 @@ jsondb.error
 
 """
 
+
 class Error(Exception):
     pass
 
@@ -20,4 +21,3 @@ class IllegalTypeError(Error):
 
 class UnsupportedOperation(Error):
     pass
-

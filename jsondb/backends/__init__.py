@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import os, tempfile
+import os
+import tempfile
 
 from jsondb.backends.sqlite3_backend import Sqlite3Backend
 from jsondb.backends.url import URL
@@ -9,8 +10,10 @@ drivers = {
     'sqlite3' : Sqlite3Backend,
 }
 
+
 class Error(Exception):
     pass
+
 
 class NonAvailableError(Error):
     pass
@@ -35,6 +38,5 @@ def create(connstr, *args, **kws):
     name = url.driver
     cls = drivers.get(name.lower(), None)
     if not cls:
-        raise NonAvailableError, name
+        raise NonAvailableError(name)
     return cls(url=url, *args, **kws) if cls else None
-

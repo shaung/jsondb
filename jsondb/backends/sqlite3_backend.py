@@ -64,7 +64,7 @@ class Sqlite3Backend(BackendBase):
         )""")
 
         conn.execute("create index if not exists jsondata_idx_composite on jsondata (parent, type)")
- 
+
         conn.execute("""create table if not exists settings
         (key    text primary key,
          value  blob
@@ -114,7 +114,7 @@ class Sqlite3Backend(BackendBase):
                 self.cursor.close()
             except:
                 pass
-            self.cursor= conn.cursor()
+            self.cursor = conn.cursor()
         return self.cursor
 
     def commit(self):
@@ -122,7 +122,7 @@ class Sqlite3Backend(BackendBase):
 
     def rollback(self):
         self.conn.rollback()
- 
+
     def close(self):
         if self.cursor:
             self.cursor.close()
@@ -206,7 +206,7 @@ class Sqlite3Backend(BackendBase):
 
     def get_link_key(self):
         return self.get_settings('link_key')
- 
+
     def insert_root(self, (root_type, value)):
         c = self.cursor or self.get_cursor()
         conn = self.conn or self.get_connection()
@@ -234,7 +234,7 @@ class Sqlite3Backend(BackendBase):
         func = only_one and c.fetchone or c.fetchall
         for row in func():
             yield row
- 
+
     def dumprows(self):
         c = self.cursor or self.get_cursor()
         c.execute('select * from jsondata order by id')
@@ -254,7 +254,7 @@ class Sqlite3Backend(BackendBase):
         c.execute('select type from jsondata where id = ?', (rowid, ))
         rslt = c.fetchone()
         return rslt['type'] if rslt else None
- 
+
     def update_link(self, rowid, link=None):
         c = self.cursor or self.get_cursor()
         c.execute('update jsondata set link = ? where id = ?', (link, rowid, ))
@@ -321,23 +321,27 @@ class Sqlite3Backend(BackendBase):
                     # Expand lists
                     for i, parent_type in enumerate(reversed(parent_types)):
                         if parent_type == LIST:
-                            parent_ids[i:i+1] = self.iter_slice(parent_ids[i])
+                            parent_ids[i:i + 1] = self.iter_slice(parent_ids[i])
                     if not parent_ids:
                         rows = []
                     else:
                         rows = self.select('%s where t.parent in ('
-                            'select distinct id from jsondata'
-                            ' where parent in (%s) and type = %s and value = \'%s\')'
-                            ' order by id asc' % (select_cols, ','.join(map(str, parent_ids)), KEY, name))
+                                           'select distinct id from jsondata'
+                                           ' where parent in (%s) and type = %s and value = \'%s\')'
+                                           ' order by id asc' %
+                                           (select_cols, ','.join(map(str, parent_ids)), KEY, name))
                 else:
                     # TODO: "$.*.author"
                     rows = []
             elif axis == '..':
                 if name:
                     # We are looking for DICTS who has a key named "name"
-                    rows = self.select(select_cols + ' where t.parent in '
-                                                    '(select id from jsondata tk where tk.type = ? and tk.value = ? and '
-                                                    'exists(select id from jsondata tp where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))', (KEY, name, DICT, repr(parent_ids),))
+                    rows = self.select('%s where t.parent in ('
+                                       'select id from jsondata tk'
+                                       ' where tk.type = ? and tk.value = ? and '
+                                       ' exists (select id from jsondata tp'
+                                       ' where tp.type = ? and tp.id = tk.parent and ancestors_in(tp.parent, ?)))' % (select_cols,),
+                                       (KEY, name, DICT, repr(parent_ids),))
                 else:
                     # ..* is meaningless.
                     # TODO: just ignore it for now.
@@ -356,7 +360,7 @@ class Sqlite3Backend(BackendBase):
             if not rowids:
                 # No matches
                 break
-                
+
             for _filter in filters:
                 func = funcs.get(_filter['type'])
                 rowids = func(_filter, rowids)
@@ -369,8 +373,8 @@ class Sqlite3Backend(BackendBase):
 
         for row in rows:
             yield Result.from_row(row)
-            if one: break
-
+            if one:
+                break
 
     def parse_predicate(self, _filter, rowids):
         # Evaluate the expr
@@ -404,7 +408,7 @@ class Sqlite3Backend(BackendBase):
                 if name and axis == '.':
                     _query = 'select %%s from jsondata where parent = (select id from jsondata where type = %s and parent = %%s and value = %%s)' % KEY
                     if not subquery:
-                        parent =  't.id'
+                        parent = 't.id'
                     else:
                         parent = '(%s)' % subquery
                     subquery = _query % (cols, parent, "'%s'" % name)
@@ -414,7 +418,7 @@ class Sqlite3Backend(BackendBase):
             subquery += ' union all select -9, -1, NULL'
             tables[key] = subquery
 
-        clause = 'select %s from %s where (%s) and (%s)' % ('*', ', '.join('(%s) %s' % (v, k) for k, v in tables.items()), condition, 
+        clause = 'select %s from %s where (%s) and (%s)' % ('*', ', '.join('(%s) %s' % (v, k) for k, v in tables.items()), condition,
                     ' or '.join(['%s.type >= 0' % k for k in tables]))
         stmt = 'select t.id from jsondata t where t.id in (%s) and exists (%s)' % (','.join(str(x) for x in rowids), clause)
 
@@ -440,7 +444,7 @@ class Sqlite3Backend(BackendBase):
                 step = union.get('step', None)
                 _slice = [(int(x) if x else None) for x in (start, end, step)]
                 result += [id for id in rowids[slice(*_slice)] if id not in result]
-     
+
         return result
 
 
@@ -465,6 +469,7 @@ def parse_atom(atom):
         raise 'impossible'
 
 parse_atom.children = {}
+
 
 def parse_expr(expr):
     result = ''
@@ -493,12 +498,12 @@ def parse_expr(expr):
             op = 'is'
         lexprs = parse_expr(left)
         if lexprs[0] == 'child' and op in ('and', 'or', 'not'):
-            lexpr = ' %s is not NULL ' % lexprs[1] 
+            lexpr = ' %s is not NULL ' % lexprs[1]
         else:
             lexpr = lexprs[1]
         rexprs = parse_expr(right)
         if rexprs[0] == 'child' and op in ('and', 'or', 'not'):
-            rexpr = ' %s is not NULL ' % rexprs[1] 
+            rexpr = ' %s is not NULL ' % rexprs[1]
         else:
             rexpr = rexprs[1]
 
@@ -506,4 +511,3 @@ def parse_expr(expr):
         _type = op
 
     return _type, result
-
