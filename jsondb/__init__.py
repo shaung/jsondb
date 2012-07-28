@@ -100,7 +100,7 @@ def load(path, **kws):
     root_type = _backend.get_root_type()
 
     cls = get_class(root_type)
-    self = cls(backend=_backend, link_key='')
+    self = cls(backend=_backend)
 
     return self
 
