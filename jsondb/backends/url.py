@@ -21,8 +21,12 @@ class URL(object):
         auth = '%s%s%s' % (self.username or '', ':' if (self.username or self.password) else '', self.password or '')
         host = '%s%s%s' % (self.host or '', ':' if (self.host or self.port) else '', self.port or '')
         netloc = '%s%s%s' % (auth, '@' if auth else '', host)
-        parts = (self.driver, netloc, self.database, '', '')
+        database = '%s%s' % ('' if netloc else '//', self.database)
+        parts = (self.driver, netloc, database, '', '')
         return urlunsplit(parts)
+
+    def __str__(self):
+        return unicode(self).encode('utf-8')
 
     @classmethod
     def parse(cls, url):
