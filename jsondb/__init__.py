@@ -105,9 +105,8 @@ def load(path, **kws):
     return self
 
 
-def from_file(dbpath, filepath, **kws):
+def from_file(filepath, saveto=None, **kws):
     """Create a new db from json file"""
-    # TODO: not necessarily need an url
     if isinstance(filepath, basestring):
         fileobj = open(filepath)
     else:
@@ -115,7 +114,7 @@ def from_file(dbpath, filepath, **kws):
     # TODO: streaming
     data = json.load(fileobj)
 
-    self = create(path=dbpath, **kws)
+    self = create(path=saveto, **kws)
     try:
         self.feed(data)
     except:
