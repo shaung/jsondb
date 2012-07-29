@@ -208,6 +208,10 @@ class TestAccess(TestBase):
         eq_(s[2], v[2])
         eq_(s[1:-1:-1], v[1:-1:-1])
         eq_(len(s), len(v))
+        eq_(max(s), max(v))
+        eq_(s.max(), v.max())
+        eq_(min(s), min(v))
+        eq_(s.min(), v.min())
         eq_('l' in s, 'l' in v)
         eq_('l' not in s, 'l' not in v)
 

@@ -542,6 +542,9 @@ class StringQueryable(SequenceQueryable, PlainQueryable):
     def count(self, item):
         return self.data().count(item)
 
+    def __iter__(self):
+        return iter(self.data())
+
     def __getitem__(self, key):
         return self.data()[key]
 
