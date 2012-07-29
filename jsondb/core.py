@@ -56,20 +56,21 @@ class QueryResult(object):
 
     def getone(self):
         try:
-            return self.queryset._make(next(self.seq))
+            row = next(self.seq)
+            return self.queryset._make(row.id, row.type)
         except StopIteration:
             return None
 
     def itervalues(self):
         for row in self.seq:
-            yield self.queryset._make(row).data()
+            yield self.queryset._make(row.id, row.type).data()
 
     def values(self):
         return list(self.itervalues())
 
     def __iter__(self):
         for row in self.seq:
-            yield self.queryset._make(row)
+            yield self.queryset._make(row.id, row.type)
 
 
 class Queryable(object):
@@ -110,18 +111,19 @@ class Queryable(object):
         else:
             return 1 if self_data > other_data else -1
 
-    def _make(self, node):
-        root_id = node.id
-        _type = node.type
+    def _make(self, id, type=None):
+        if type is None:
+            row = self.backend.get_row(id)
+            type = row['type']
 
-        cls = get_type_class(_type)
+        cls = get_type_class(type)
 
-        if _type in (LIST, DICT):
-            row = self.backend.get_row(node.id)
+        if type in (LIST, DICT):
+            row = self.backend.get_row(id)
             data = row['value']
         else:
             data = Nothing()
-        result = cls(backend=self.backend, link_key=self.backend.get_link_key(), root=root_id, datatype=_type, data=data)
+        result = cls(backend=self.backend, link_key=self.backend.get_link_key(), root=id, datatype=type, data=data)
         return result
 
     def __getitem__(self, key):
@@ -419,7 +421,7 @@ class ListQueryable(SequenceQueryable):
             if abs(key) >= len(self):
                 raise IndexError
             rslt = self.backend.get_nth_child(self.root, key)
-            return self._make(rslt)
+            return self._make(rslt.id, rslt.type)
         return super(ListQueryable, self).__getitem__(key)
 
     def __mul__(self, other):
@@ -460,7 +462,7 @@ class DictQueryable(SequenceQueryable):
 
     def iteritems(self):
         for key, value_row in self.backend.iter_dict(self.root):
-            yield key, self._make(value_row).data()
+            yield key, self._make(value_row.id, value_row.type).data()
 
 
 class PlainQueryable(Queryable):
