@@ -82,6 +82,8 @@ class TestAccess(TestBase):
     def teardown(self):
         self.db.close()
 
+
+class TestDict(TestAccess):
     def test_dict_query(self):
         eq_(self.db['glossary'].data(), self.obj['glossary'])
 
@@ -113,6 +115,16 @@ class TestAccess(TestBase):
         self.db['glossary'].update({'somestr': [1, 2]})
         eq_(self.db['glossary']['somestr'].data(), [1, 2])
 
+    def test_dict_items(self):
+        for k, v in self.db['glossary'].items():
+            eq_(v, self.obj['glossary'][k])
+
+    def test_dict_iteritems(self):
+        for k, v in self.db['glossary'].iteritems():
+            eq_(v, self.obj['glossary'][k])
+
+
+class TestList(TestAccess):
     def test_list(self):
         eq_(self.db['glossary']['persons'].data(), self.obj['glossary']['persons'])
         eq_(len(self.db['glossary']['persons']), 2)
@@ -158,6 +170,18 @@ class TestAccess(TestBase):
         self.db['glossary']['persons'][0] = new_person
         eq_(self.db['glossary']['persons'][0].data(), new_person)
 
+    def test_max(self):
+        self.db['glossary']['numbers'] = range(10)
+        eq_(max(self.db['glossary']['numbers']).data(), 9)
+        eq_(min(self.db['glossary']['numbers']).data(), 0)
+
+
+class TestInteger(TestAccess):
+    def setup(self):
+        TestAccess.setup(self)
+        self.num = self.db['glossary']['persons'][0]['tag'][-1]
+        self.vl = self.obj['glossary']['persons'][0]['tag'][-1]
+
     def test_int(self):
         num = self.db['glossary']['persons'][0]['tag'][-1]
         vl = self.obj['glossary']['persons'][0]['tag'][-1]
@@ -195,9 +219,88 @@ class TestAccess(TestBase):
         eq_(i << num, i << vl)
         eq_(i >> num, i >> vl)
 
-    def test_string(self):
-        s = self.db['glossary']['title']
-        v = self.obj['glossary']['title']
+    def test_int_iadd(self):
+        i = 2
+        self.num += i
+        self.vl += i
+        eq_(self.num, self.vl)
+
+    def test_int_isub(self):
+        i = 2
+        self.num -= i
+        self.vl -= i
+        eq_(self.num, self.vl)
+
+    def test_int_imul(self):
+        i = 2
+        self.num *= i
+        self.vl *= i
+        eq_(self.num, self.vl)
+
+    def test_int_ifloordiv(self):
+        i = 2
+        self.num //= i
+        self.vl //= i
+        eq_(self.num, self.vl)
+
+    def test_int_idiv(self):
+        i = 2
+        self.num /= i
+        self.vl /= i
+        eq_(self.num, self.vl)
+
+    def test_int_imod(self):
+        i = 2
+        self.num %= i
+        self.vl %= i
+        eq_(self.num, self.vl)
+
+    def test_int_ipow(self):
+        i = 2
+        self.num **= i
+        self.vl **= i
+        eq_(self.num, self.vl)
+
+    def test_int_iand(self):
+        i = 2
+        self.num &= i
+        self.vl &= i
+        eq_(self.num, self.vl)
+
+    def test_int_ior(self):
+        i = 2
+        self.num |= i
+        self.vl |= i
+        eq_(self.num, self.vl)
+
+    def test_int_ixor(self):
+        i = 2
+        self.num ^= i
+        self.vl ^= i
+        eq_(self.num, self.vl)
+
+    def test_int_ilshift(self):
+        i = 2
+        self.num <<= i
+        self.vl <<= i
+        eq_(self.num, self.vl)
+
+    def test_int_irshift(self):
+        i = 2
+        self.num >>= i
+        self.vl >>= i
+        eq_(self.num, self.vl)
+
+
+class TestString(TestAccess):
+    def setup(self):
+        TestAccess.setup(self)
+        self.s = self.db['glossary']['title']
+        self.v = self.obj['glossary']['title']
+
+    def test_op(self):
+        s = self.s
+        v = self.v
         eq_(s, v)
         eq_(s.data(), v)
         other = 'test'
@@ -223,15 +326,16 @@ class TestAccess(TestBase):
         self.db['glossary']['title'] = 'x'
         eq_(self.db['glossary']['title'], 'x')
 
-    def test_string_inplace(self):
-        s = self.db['glossary']['title']
-        v = self.obj['glossary']['title']
+    def test_iadd(self):
+        self.s += 'foo'
+        self.v += 'foo'
+        eq_(self.s, self.v)
 
-        eq_(s, v)
+    def test_imul(self):
+        self.s *= 3
+        self.v *= 3
+        eq_(self.s, self.v)
 
-        s += 'foo'
-        v += 'foo'
-        eq_(s, v)
 
 def test_sample():
     import jsondb
