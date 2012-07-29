@@ -549,12 +549,6 @@ class StringQueryable(PlainQueryable, SequenceQueryable):
     def __contains__(self, item):
         return item in self.data()
 
-    def max(self):
-        return max(self.data())
-
-    def min(self):
-        return min(self.data())
-
     def index(self, item):
         return self.data().index(item)
 
