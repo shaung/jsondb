@@ -73,7 +73,7 @@ class QueryResult(object):
 
 
 class Queryable(object):
-    def __init__(self,  backend, link_key=None, root=-1, datatype=None, data=Nothing()):
+    def __init__(self, backend, link_key=None, root=-1, datatype=None, data=Nothing()):
         self.backend = weakref.proxy(backend) if isinstance(backend, weakref.ProxyTypes) else backend
         self.link_key = link_key or '@__link__'
         self.query_path_cache = {}
@@ -605,7 +605,7 @@ class NumberQueryable(PlainQueryable):
     def __rtruediv__(self, other):
         pass
 
-    def __rmod_(self, other):
+    def __rmod__(self, other):
         return other % self.data()
 
     def __rpow__(self, other):
