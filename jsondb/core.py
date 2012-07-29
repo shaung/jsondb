@@ -557,10 +557,10 @@ class NumberQueryable(PlainQueryable):
     def __pos__(self):
         return self.data().__pos__()
 
-    def __neg__(self, other):
+    def __neg__(self):
         return self.data().__neg__()
 
-    def __abs__(self, other):
+    def __abs__(self):
         return self.data().__abs__()
 
     def __add__(self, other):

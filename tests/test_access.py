@@ -163,6 +163,12 @@ class TestAccess(TestBase):
         vl = self.obj['glossary']['persons'][0]['tag'][-1]
         eq_(num, vl)
         i = 2
+
+        eq_(~num, ~vl)
+        eq_(+num, +vl)
+        eq_(-num, -vl)
+        eq_(abs(num), abs(vl))
+
         eq_(num + i, vl + i)
         eq_(num - i, vl - i)
         eq_(num * i, vl * i)
@@ -175,7 +181,6 @@ class TestAccess(TestBase):
         eq_(num ^ i, vl ^ i)
         eq_(num << i, vl << i)
         eq_(num >> i, vl >> i)
-        eq_(~num, ~vl)
 
         eq_(i + num, i + vl)
         eq_(i - num, i - vl)
