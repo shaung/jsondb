@@ -173,6 +173,9 @@ class TestAccess(TestBase):
         eq_(num & i, vl & i)
         eq_(num | i, vl | i)
         eq_(num ^ i, vl ^ i)
+        eq_(num << i, vl << i)
+        eq_(num >> i, vl >> i)
+        eq_(~num, ~vl)
 
         eq_(i + num, i + vl)
         eq_(i - num, i - vl)
@@ -184,6 +187,8 @@ class TestAccess(TestBase):
         eq_(i & num, i & vl)
         eq_(i | num, i | vl)
         eq_(i ^ num, i ^ vl)
+        eq_(i << num, i << vl)
+        eq_(i >> num, i >> vl)
 
     def test_string(self):
         s = self.db['glossary']['title']

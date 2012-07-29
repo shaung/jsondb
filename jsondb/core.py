@@ -613,7 +613,7 @@ class NumberQueryable(PlainQueryable):
 
 
 class IntegerQueryable(NumberQueryable):
-    def __invert__(self, other):
+    def __invert__(self):
         return self.data().__invert__()
 
     def __lshift__(self, other):
