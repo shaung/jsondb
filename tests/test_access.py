@@ -197,7 +197,7 @@ class TestAccess(TestBase):
 
     def test_string(self):
         s = self.db['glossary']['title']
-        v = self.db['glossary']['title']
+        v = self.obj['glossary']['title']
         eq_(s, v)
         eq_(s.data(), v)
         other = 'test'
@@ -209,9 +209,7 @@ class TestAccess(TestBase):
         eq_(s[1:-1:-1], v[1:-1:-1])
         eq_(len(s), len(v))
         eq_(max(s), max(v))
-        eq_(s.max(), v.max())
         eq_(min(s), min(v))
-        eq_(s.min(), v.min())
         eq_('l' in s, 'l' in v)
         eq_('l' not in s, 'l' not in v)
 
@@ -225,6 +223,15 @@ class TestAccess(TestBase):
         self.db['glossary']['title'] = 'x'
         eq_(self.db['glossary']['title'], 'x')
 
+    def test_string_inplace(self):
+        s = self.db['glossary']['title']
+        v = self.obj['glossary']['title']
+
+        eq_(s, v)
+
+        s += 'foo'
+        v += 'foo'
+        eq_(s, v)
 
 def test_sample():
     import jsondb

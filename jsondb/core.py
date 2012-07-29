@@ -300,6 +300,7 @@ class Queryable(object):
             # TODO: different type
             raise Error
         self.backend.set_value(self.root, data)
+        self._data = data
 
     def dumps(self):
         """Dump the json data"""
@@ -466,22 +467,27 @@ class PlainQueryable(Queryable):
     def __iadd__(self, other):
         data = self.__add__(other)
         self.update(data)
+        return self
 
     def __isub__(self, other):
         data = self.__sub__(other)
         self.update(data)
+        return self
 
     def __imul__(self, other):
         data = self.__mul__(other)
         self.update(data)
+        return self
 
     def __ifloordiv__(self, other):
         data = self.__floordiv__(other)
         self.update(data)
+        return self
 
     def __idiv__(self, other):
         data = self.__div__(other)
         self.update(data)
+        return self
 
     def __itruediv__(self, other):
         pass
@@ -489,35 +495,48 @@ class PlainQueryable(Queryable):
     def __imod_(self, other):
         data = self.__mod__(other)
         self.update(data)
+        return self
 
     def __ipow__(self, other):
         data = self.__pow__(other)
         self.update(data)
+        return self
 
     def __ilshift__(self, other):
         data = self.__lshift__(other)
         self.update(data)
+        return self
 
     def __irshift__(self, other):
         data = self.__rshift__(other)
         self.update(data)
+        return self
 
     def __iand__(self, other):
         data = self.__and__(other)
         self.update(data)
+        return self
 
     def __ior__(self, other):
         data = self.__or__(other)
         self.update(data)
+        return self
 
     def __ixor__(self, other):
         data = self.__xor__(other)
         self.update(data)
+        return self
 
 
-class StringQueryable(SequenceQueryable, PlainQueryable):
+class StringQueryable(PlainQueryable, SequenceQueryable):
     def __len__(self):
         return len(self.data())
+
+    def __add__(self, other):
+        return self.data() + other
+
+    def __radd__(self, other):
+        return other + self.data()
 
     def __mul__(self, other):
         return self.data() * other
