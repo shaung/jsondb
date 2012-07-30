@@ -213,6 +213,12 @@ class Sqlite3Backend(BackendBase):
         c.execute(SQL_INSERT_ROOT, (root_type, value))
         conn.commit()
 
+    def set_row(self, id, type, value):
+        c = self.cursor or self.get_cursor()
+        conn = self.conn or self.get_connection()
+        c.execute('update jsondata set type = ?, value = ? where id = ?', (type, value, id))
+        conn.commit()
+
     def insert(self, *args, **kws):
         c = self.cursor or self.get_cursor()
         c.execute(SQL_INSERT, *args, **kws)

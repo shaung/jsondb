@@ -14,7 +14,7 @@ import backends
 from error import *
 
 
-class BaseDB(core.Queryable):
+class BaseDB:
     def set_link_key(self, link_key):
         self.link_key = link_key
         self.backend.set_link_key(link_key)
@@ -38,7 +38,8 @@ class BaseDB(core.Queryable):
 
 
 def get_class(datatype):
-    class JsonDB(core.get_type_class(datatype), BaseDB):
+    cls = core.get_type_class(datatype)
+    class JsonDB(cls, BaseDB):
         pass
 
     return JsonDB
