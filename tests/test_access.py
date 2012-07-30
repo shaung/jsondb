@@ -336,6 +336,48 @@ class TestString(TestAccess):
         self.v *= 3
         eq_(self.s, self.v)
 
+class TestAssign(TestAccess):
+    def test_assign(self):
+        db = self.db['glossary']
+        obj = self.obj['glossary']['title']
+        eq_(db['title'], obj)
+
+        db['title'] = 1
+        eq_(db['title'], 1)
+
+        db['title'] = 'foo'
+        eq_(db['title'], 'foo')
+
+        db['title'] = ['foo']
+        eq_(db['title'], ['foo'])
+
+        db['title'] = {'name': 'foo'}
+        eq_(db['title'], {'name': 'foo'})
+
+    def test_update(self):
+        node = self.db['glossary']['title']
+
+        v = 1
+        node._ = v
+        eq_(node, v)
+
+        v = 'foo'
+        node._ = v
+        eq_(node, v)
+
+        v = 'こんにちは世界'
+        node._ = v
+        eq_(node, v)
+
+        v = u'こんにちは世界'
+        node._ = v
+        eq_(node, v)
+
+        v = ['foo']
+        node._ = v
+        eq_(node.__cmp__(v), 0)
+        eq_(node, v)
+
 
 def test_sample():
     import jsondb

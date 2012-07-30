@@ -86,10 +86,10 @@ class Queryable(object):
         return self.root
 
     def __len__(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __getattr__(self, name):
-        cls = get_datatype_class(self.datatype)
+        cls = self.get_datatype()
         try:
             attr = getattr(cls, name)
         except:
@@ -100,7 +100,7 @@ class Queryable(object):
     def __cmp__(self, other):
         if isinstance(other, Queryable):
             if other.datatype != self.datatype:
-                return False
+                return -1
             other_data = other.data()
         else:
             other_data = other
@@ -148,7 +148,7 @@ class Queryable(object):
 
     def store(self, data, parent=None):
         # TODO: store raw json data into a node.
-        raise NotImplemented
+        raise NotImplementedError
 
     def feed(self, data, parent=None):
         """Append data to the specified parent.
@@ -297,12 +297,36 @@ class Queryable(object):
             return TYPE_MAP.get(type(data)) == self.datatype
         return True
 
-    def update(self, data):
-        if not self.check_type(data):
-            # TODO: different type
-            raise Error
-        self.backend.set_value(self.root, data)
-        self._data = data
+    def _update(self, data):
+        new_type = TYPE_MAP.get(type(data))
+        if self.datatype == (LIST, DICT):
+            self.backend.remove(self.root)
+        if new_type == LIST:
+            self._data = len(data)
+            for x in data:
+                self.feed(x)
+        elif new_type == DICT:
+            self._data = len(data)
+            for k, v in data.iteritems():
+                self.feed({k: v})
+        else:
+            self.backend.set_value(self.root, data)
+            self._data = data
+
+        if self.datatype == new_type:
+            self.backend.set_value(self.root, self._data)
+        else:
+            self.backend.set_row(self.root, new_type, self._data)
+            self.datatype = new_type
+
+        import jsondb
+        cls = get_type_class(new_type)
+        if isinstance(self, jsondb.BaseDB):
+            self.__class__.__base__[0] = cls
+        else:
+            self.__class__ = cls
+
+    _ = property(data, _update)
 
     def dumps(self):
         """Dump the json data"""
@@ -368,7 +392,6 @@ class SequenceQueryable(Queryable):
         if node:
             self.backend.remove(node.root)
 
-        logging.debug(DATA_TYPE_NAME.get(self.datatype))
         if self.datatype == DICT:
             self.update({key: value})
         elif self.datatype == LIST and isinstance(key, (int, long)):
@@ -377,7 +400,7 @@ class SequenceQueryable(Queryable):
             node.feed(value)
             # TODO: feed list
         else:
-            node.update(value)
+            node._update(value)
 
     def __delitem__(self, key):
         key_id, _ = self.backend.find_key(key, self.root)
@@ -393,7 +416,6 @@ class SequenceQueryable(Queryable):
             yield self._make(x)
 
     def __contains__(self, item):
-        logger.debug('check contains')
         # TODO: hash
         return False
 
@@ -468,27 +490,27 @@ class DictQueryable(SequenceQueryable):
 class PlainQueryable(Queryable):
     def __iadd__(self, other):
         data = self.__add__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __isub__(self, other):
         data = self.__sub__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __imul__(self, other):
         data = self.__mul__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __ifloordiv__(self, other):
         data = self.__floordiv__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __idiv__(self, other):
         data = self.__div__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __itruediv__(self, other):
@@ -496,37 +518,37 @@ class PlainQueryable(Queryable):
 
     def __imod_(self, other):
         data = self.__mod__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __ipow__(self, other):
         data = self.__pow__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __ilshift__(self, other):
         data = self.__lshift__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __irshift__(self, other):
         data = self.__rshift__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __iand__(self, other):
         data = self.__and__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __ior__(self, other):
         data = self.__or__(other)
-        self.update(data)
+        self._update(data)
         return self
 
     def __ixor__(self, other):
         data = self.__xor__(other)
-        self.update(data)
+        self._update(data)
         return self
 
 
@@ -568,10 +590,13 @@ class StringQueryable(PlainQueryable, SequenceQueryable):
             return
         data = self.data()
         data[key] = value
-        self.update(data)
+        self._update(data)
 
 
 class NumberQueryable(PlainQueryable):
+    def __nonzero__(self):
+        return self.data()
+
     def __pos__(self):
         return self.data().__pos__()
 
