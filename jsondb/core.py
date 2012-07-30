@@ -86,7 +86,7 @@ class Queryable(object):
         return self.root
 
     def __len__(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __getattr__(self, name):
         cls = get_datatype_class(self.datatype)
@@ -148,7 +148,7 @@ class Queryable(object):
 
     def store(self, data, parent=None):
         # TODO: store raw json data into a node.
-        raise NotImplemented
+        raise NotImplementedError
 
     def feed(self, data, parent=None):
         """Append data to the specified parent.
@@ -578,6 +578,9 @@ class StringQueryable(PlainQueryable, SequenceQueryable):
 
 
 class NumberQueryable(PlainQueryable):
+    def __nonzero__(self):
+        return self.data()
+
     def __pos__(self):
         return self.data().__pos__()
 
