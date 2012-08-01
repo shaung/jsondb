@@ -45,21 +45,21 @@ def get_class(datatype):
     return JsonDB
 
 
-def create(data={}, path=None, overwrite=True, link_key=None, **kws):
+def create(data={}, url=None, overwrite=True, link_key=None, **kws):
     """
     Create a new empty DB.
 
     :param data: Initial data. An empty dict if not specified.
 
-    :param path: An RFC-1738-style string which specifies the URL to store into.
+    :param url: An RFC-1738-style string which specifies the URL to store into.
 
-    :param overwrite: If is True and the database specified by *path* already exists, it will be truncated.
+    :param overwrite: If is True and the database specified by *url* already exists, it will be truncated.
 
     :param link_key: Key directive for links in the database.
 
     :param kws: Additional parameters to parse to the engine.
     """
-    _backend = backends.create(path, overwrite=overwrite)
+    _backend = backends.create(url, overwrite=overwrite)
 
     # guess root type from the data provided.
     root_type = TYPE_MAP.get(type(data))
@@ -89,15 +89,15 @@ def create(data={}, path=None, overwrite=True, link_key=None, **kws):
     return self
 
 
-def load(path, **kws):
+def load(url, **kws):
     """
     Load from an existing DB.
 
-    :param path: An RFC-1738-style string which specifies the URL to load from.
+    :param url: An RFC-1738-style string which specifies the URL to load from.
 
     :param kws: Additional parameters to parse to the engine.
     """
-    _backend = backends.create(path, overwrite=False)
+    _backend = backends.create(url, overwrite=False)
     root_type = _backend.get_root_type()
 
     cls = get_class(root_type)
@@ -106,16 +106,16 @@ def load(path, **kws):
     return self
 
 
-def from_file(filepath, saveto=None, **kws):
+def from_file(file, url=None, **kws):
     """Create a new db from json file"""
-    if isinstance(filepath, basestring):
-        fileobj = open(filepath)
+    if isinstance(file, basestring):
+        fileobj = open(file)
     else:
-        fileobj = filepath
+        fileobj = file
     # TODO: streaming
     data = json.load(fileobj)
 
-    self = create(path=saveto, **kws)
+    self = create(url=url, **kws)
     try:
         self.feed(data)
     except:

@@ -36,7 +36,7 @@ class TestBookStore:
         fpath = os.path.join(os.path.dirname(__file__), 'bookstore.json')
         self.obj = json.load(open(fpath))
 
-        db = jsondb.from_file(fpath, saveto=self.dbpath)
+        db = jsondb.from_file(fpath, url=self.dbpath)
         db.close()
 
         self.db = jsondb.load(self.dbpath)
