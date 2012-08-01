@@ -299,18 +299,12 @@ class Queryable(object):
 
     def _update(self, data):
         new_type = TYPE_MAP.get(type(data))
-        if self.datatype == (LIST, DICT):
+        if self.datatype in (LIST, DICT):
             self.backend.remove(self.root)
-        if new_type == LIST:
+
+        if new_type in (LIST, DICT):
             self._data = len(data)
-            for x in data:
-                self.feed(x)
-        elif new_type == DICT:
-            self._data = len(data)
-            for k, v in data.iteritems():
-                self.feed({k: v})
         else:
-            self.backend.set_value(self.root, data)
             self._data = data
 
         if self.datatype == new_type:
@@ -318,6 +312,15 @@ class Queryable(object):
         else:
             self.backend.set_row(self.root, new_type, self._data)
             self.datatype = new_type
+
+        if new_type == LIST:
+            for x in data:
+                self.feed(x)
+        elif new_type == DICT:
+            for k, v in data.iteritems():
+                self.feed({k: v})
+        else:
+            self.backend.set_value(self.root, data)
 
         import jsondb
         cls = get_type_class(new_type)
