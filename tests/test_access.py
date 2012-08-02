@@ -373,9 +373,22 @@ class TestAssign(TestAccess):
         node._ = v
         eq_(node, v)
 
+        v = 123.45
+        node._ = v
+        eq_(node, v)
+
+        v = dict((i, chr(i+97)) for i in range(26))
+        node._ = v
+        self.db.dumprows()
+        eq_(node, v)
+
         v = ['foo']
         node._ = v
-        eq_(node.__cmp__(v), 0)
+        eq_(node, v)
+
+        v = dict((i, chr(i+97)) for i in range(26))
+        node._ = v
+        self.db.dumprows()
         eq_(node, v)
 
 
