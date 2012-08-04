@@ -212,10 +212,6 @@ class Queryable(object):
         else:
             pending_list.append((parent_id, _type, data,))
 
-        if parent_type in (DICT, LIST, KEY):
-            #  Use the value field to store the length of LIST / DICT.
-            self.backend.increase_value(real_parent_id, 1)
-
         return id_list, pending_list
 
     def query(self, path, parent=None, one=False):
@@ -371,7 +367,7 @@ class Queryable(object):
 
 class SequenceQueryable(Queryable):
     def __len__(self):
-        return self._get_value()
+        return self.backend.get_children_count(self.root)
 
     def __getitem__(self, key):
         if isinstance(key, slice):

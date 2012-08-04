@@ -89,7 +89,6 @@ class TestDict(TestAccess):
 
     def test_dict_len(self):
         eq_(len(self.db['glossary']), len(self.obj['glossary']))
-        eq_(self.db['glossary']._get_value(), len(self.obj['glossary']))
 
     def test_dict_clear(self):
         self.db['glossary'].clear()
