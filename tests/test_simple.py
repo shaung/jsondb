@@ -153,7 +153,7 @@ def test_cxt():
 
 
 def test_large():
-    db = jsondb.create(path='large.db')
+    db = jsondb.create(url='large.db')
     for i in range(1000):
         li = db.feed({str(i):{'value':str(i)}})
 
