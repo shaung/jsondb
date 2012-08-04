@@ -276,6 +276,12 @@ class Sqlite3Backend(BackendBase):
         c = self.cursor or self.get_cursor()
         c.execute(SQL_UPDATE_VALUE, (value, id))
 
+    def get_children_count(self, id):
+        c = self.cursor or self.get_cursor()
+        c.execute("select count(id) as count from jsondata where parent = ?", (id,))
+        result = c.fetchone()
+        return result['count']
+
     def increase_value(self, id, increase_by=0):
         c = self.cursor or self.get_cursor()
         c.execute("update jsondata set value = value + ? where id = ?", (increase_by, id))
