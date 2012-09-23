@@ -288,7 +288,7 @@ class Sqlite3Backend(BackendBase):
 
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
-        logger.debug(stmt)
+        #logger.debug(stmt)
         c.execute(stmt, variables)
         result = c.fetchall()
         return result
@@ -344,7 +344,9 @@ class Sqlite3Backend(BackendBase):
                                            (select_cols, ','.join(map(str, parent_ids)), KEY, name))
                 else:
                     # TODO: "$.*.author"
-                    rows = []
+                    rows = self.select('%s where t.parent in (%s)'
+                                        ' order by id asc' %
+                                        (select_cols, ','.join(map(str, parent_ids))))
             elif axis == '..':
                 if name:
                     # We are looking for DICTS who has a key named "name"
