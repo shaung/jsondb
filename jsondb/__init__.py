@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import pkg_resources  # part of setuptools
-version = pkg_resources.require("jsondb")[0].version
+try:
+    import pkg_resources  # part of setuptools
+    version = pkg_resources.require("jsondb")[0].version
+except:
+    version = 'unknown'
 
 try:
     import simplejson as json
