@@ -1,6 +1,7 @@
 # coding: utf8
 
 from urlparse import urlparse, urlunsplit
+from jsondb.util import IS_WINDOWS
 
 
 class Error(Exception):
@@ -30,8 +31,13 @@ class URL(object):
 
     @classmethod
     def parse(cls, url):
+        if IS_WINDOWS:
+            url = url.replace('\\', '/')
         if isinstance(url, basestring):
             url = urlparse(url)
+        database = url.path
+        if IS_WINDOWS and database.startswith('/'):
+            database = database[1:]
         self = cls(driver=url.scheme, username=url.username, password=url.password,
-                   host=url.hostname, port=url.port, database=url.path)
+                   host=url.hostname, port=url.port, database=database)
         return self
