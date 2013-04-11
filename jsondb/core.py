@@ -364,6 +364,9 @@ class Queryable(object):
     def get_path(self):
         return self.backend.get_path()
 
+    def get_url(self):
+        return self.backend.get_url()
+
 
 class SequenceQueryable(Queryable):
     def __len__(self):

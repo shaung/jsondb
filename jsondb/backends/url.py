@@ -22,7 +22,8 @@ class URL(object):
         auth = '%s%s%s' % (self.username or '', ':' if (self.username or self.password) else '', self.password or '')
         host = '%s%s%s' % (self.host or '', ':' if (self.host or self.port) else '', self.port or '')
         netloc = '%s%s%s' % (auth, '@' if auth else '', host)
-        database = '%s%s' % ('' if netloc else '//', self.database)
+        database = ('/' if (self.driver == 'sqlite3' and IS_WINDOWS and not self.database.startswith('/')) else '') + self.database
+        database = '%s%s' % ('' if netloc else '//', database)
         parts = (self.driver, netloc, database, '', '')
         return urlunsplit(parts)
 

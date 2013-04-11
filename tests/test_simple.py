@@ -26,8 +26,9 @@ class TestBase:
     def eq_dumps(self, root_type, data):
         db = jsondb.create(data)
         dbpath = db.get_path()
+        dburl = db.get_url()
         db.close()
-        db = jsondb.load(dbpath)
+        db = jsondb.load(dburl)
         eq_(db.dumps(), json.dumps(data))
         eq_(db.data(), data)
 

@@ -30,6 +30,7 @@ class Sqlite3Backend(BackendBase):
     def __init__(self, url, *args, **kws):
         self.conn = None
         self.cursor = None
+        self.url = url
         self.dbpath = url.database
         self.link_key = kws.get('link_key')
 
@@ -49,7 +50,10 @@ class Sqlite3Backend(BackendBase):
         super(Sqlite3Backend, self).__init__(*args, **kws)
 
     def get_path(self):
-        return self.dbpath
+        return os.path.normpath(self.dbpath)
+
+    def get_url(self):
+        return unicode(self.url)
 
     def create_tables(self):
         conn = self.get_connection()

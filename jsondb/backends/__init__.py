@@ -2,9 +2,12 @@
 
 import os
 import tempfile
+import re
 
 from jsondb.backends.sqlite3_backend import Sqlite3Backend
 from jsondb.backends.url import URL
+from jsondb.util import IS_WINDOWS
+
 
 drivers = {
     'sqlite3' : Sqlite3Backend,
@@ -15,7 +18,7 @@ class Error(Exception):
     pass
 
 
-class NonAvailableError(Error):
+class NonAvailableSchemeError(Error):
     pass
 
 
@@ -24,13 +27,13 @@ def create(connstr, *args, **kws):
         # assume sqlite3
         fd, path = tempfile.mkstemp(suffix='.jsondb')
         connstr = 'sqlite3://%s' % (os.path.abspath(os.path.normpath(path)))
+        if IS_WINDOWS:
+            connstr = 'sqlite3:///%s' % (os.path.abspath(os.path.normpath(path)))
 
-    try:
-        url = URL.parse(connstr)
-    except:
-        path = connstr
-        connstr = 'sqlite3:///%s' % (os.path.abspath(os.path.normpath(path)))
-        url = URL.parse(connstr)
+    if IS_WINDOWS and not re.match(r'^[^:/]+://.*$', connstr):
+        connstr = 'sqlite3:///%s' % (os.path.abspath(os.path.normpath(connstr)))
+
+    url = URL.parse(connstr)
 
     if not url.driver:
         url.driver = 'sqlite3'
@@ -38,5 +41,5 @@ def create(connstr, *args, **kws):
     name = url.driver
     cls = drivers.get(name.lower(), None)
     if not cls:
-        raise NonAvailableError(name)
+        raise NonAvailableSchemeError(name)
     return cls(url=url, *args, **kws) if cls else None
