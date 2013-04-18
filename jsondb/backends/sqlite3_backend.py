@@ -292,7 +292,6 @@ class Sqlite3Backend(BackendBase):
 
     def select(self, stmt, variables=()):
         c = self.cursor or self.get_cursor()
-        #logger.debug(stmt)
         c.execute(stmt, variables)
         result = c.fetchall()
         return result
@@ -347,10 +346,20 @@ class Sqlite3Backend(BackendBase):
                                            ' order by id asc' %
                                            (select_cols, ','.join(map(str, parent_ids)), KEY, name))
                 else:
-                    # TODO: "$.*.author"
-                    rows = self.select('%s where t.parent in (%s)'
-                                        ' order by id asc' %
-                                        (select_cols, ','.join(map(str, parent_ids))))
+                    # "$.*.author"
+                    rows = self.select(
+                        '%s where t.parent in (%s)'
+                        ' order by id asc' %
+                        (select_cols, ','.join(map(str, parent_ids))))
+                    # for dict keys, should fetch all the value nodes
+                    rows = sum([
+                        tuple(self.select(
+                            '%s where t.parent = %s'
+                            ' order by id asc' %
+                            (select_cols, row['id'])))
+                        if row['type'] == KEY
+                        else tuple([row])
+                        for row in rows], ())
             elif axis == '..':
                 if name:
                     # We are looking for DICTS who has a key named "name"

@@ -27,6 +27,7 @@ class TestBookStore:
     all_titles = ['Sayings of the Century', 'Sword of Honour', 'Moby Dick', 'The Lord of the Rings']
     all_authors = ['Nigel Rees', 'Evelyn Waugh', 'Herman Melville', 'J. R. R. Tolkien']
     all_prices = [8.95, 12.99, 8.99, 22.99, 19.95]
+    book_prices = [8.95, 12.99, 8.99, 22.99]
 
     def setup(self):
         self.dbpath = 'bookstore.db'
@@ -169,7 +170,19 @@ class TestBookStore:
         path = '$.store.book[-4:-1:-2].author'
         self.eq(path, self.all_authors[-4:-1:-2])
 
+    def test_query_wildcard(self):
+        path = '$.*.*.price'
+        self.eq(path, self.all_prices)
+        path = '$.store[*].*.price'
+        self.eq(path, self.all_prices)
+        path = '$.store.*.price'
+        self.eq(path, self.all_prices)
+        path = '$.*.book.price'
+        self.eq(path, self.book_prices)
+
     def test_query_recursive_descent(self):
+        path = '$.*..price'
+        self.eq(path, self.all_prices)
         path = '$.store..price'
         self.eq(path, self.all_prices)
         path = '$..price'
