@@ -25,7 +25,7 @@ To create a db:
     db = jsondb.create([])
 
 
-or create from an existing JSON file:
+to create from an existing JSON file:
 
     db = jsondb.from_file(json_file_path)
     # file-like objects are accepted as well
@@ -43,7 +43,7 @@ Now add some data to the db and access them:
             'name': chr(97 + i),
         })
 
-    assert db['items'][0]['id'] == 0
+    assert db['items'][0]['id'] == 0
     assert len(db['items']) == 3
 
     assert db.get('nonexists', 'notfound') == 'notfound'
@@ -129,6 +129,10 @@ Or use context manager:
 
     with jsondb.create(url='path/to/filename.db') as db:
         # do all the work here
+
+To load an existing jsondb file later,
+
+    db = jsondb.load('path/to/filename.db')
 
 
 ### License
