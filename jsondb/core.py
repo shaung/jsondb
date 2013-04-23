@@ -405,9 +405,20 @@ class SequenceQueryable(Queryable):
             node._update(value)
 
     def __delitem__(self, key):
-        key_id, _ = self.backend.find_key(key, self.root)
-        if key_id is not None:
-            self.backend.remove(key_id, include_self=True)
+        if self.datatype in (DICT, KEY):
+            key_id, _ = self.backend.find_key(key, self.root)
+            if key_id is not None:
+                self.backend.remove(key_id, include_self=True)
+        elif self.datatype == LIST:
+            if isinstance(key, (int, long)):
+                node = self[key]
+                if node:
+                    self.backend.remove(node.root, include_self=True)
+            elif isinstance(key, slice):
+                for node in self.backend.iter_slice(self.root, key.start, key.stop, key.step):
+                    self.backend.remove(node)
+        else:
+            raise UnsupportedTypeError
 
     def __iter__(self):
         for x in self.backend.iter_slice(self.root):

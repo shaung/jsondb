@@ -174,6 +174,16 @@ class TestList(TestAccess):
         eq_(max(self.db['glossary']['numbers']).data(), 9)
         eq_(min(self.db['glossary']['numbers']).data(), 0)
 
+    def test_list_delete(self):
+        persons = self.db['glossary']['persons']
+        del persons[0]
+        eq_(persons.data(), self.obj['glossary']['persons'][1:])
+
+    def test_list_delete_range(self):
+        tags = self.db['glossary']['persons'][-1]['tag']
+        del tags[1:-1]
+        eq_(tags.data(), self.obj['glossary']['persons'][-1]['tag'][::1])
+
 
 class TestInteger(TestAccess):
     def setup(self):
@@ -334,6 +344,7 @@ class TestString(TestAccess):
         self.s *= 3
         self.v *= 3
         eq_(self.s, self.v)
+
 
 class TestAssign(TestAccess):
     def test_assign(self):
