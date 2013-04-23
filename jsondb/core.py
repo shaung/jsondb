@@ -429,8 +429,8 @@ class SequenceQueryable(Queryable):
             yield self._make(x)
 
     def __contains__(self, item):
-        # TODO: hash
-        return False
+        # FIXME: This would be very slow
+        return item in self.data()
 
     def __add__(self, other):
         return self.data() + other
@@ -498,6 +498,10 @@ class DictQueryable(SequenceQueryable):
     def iteritems(self):
         for key, value_row in self.backend.iter_dict(self.root):
             yield key, self._make(value_row.id, value_row.type).data()
+
+    def __contains__(self, item):
+        key_id, _ = self.backend.find_key(item, self.root)
+        return key_id is not None
 
 
 class PlainQueryable(Queryable):
