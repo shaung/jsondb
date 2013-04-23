@@ -357,6 +357,26 @@ class TestString(TestAccess):
         self.s *= 3
         self.v *= 3
         eq_(self.s, self.v)
+        
+    def test_setitem(self):
+        s, v = self.s, self.v
+        s[1] = '_'
+        v = v[0] + '_' + v[2:]
+        eq_(s.data(), v)
+
+    def test_setitem_slicing(self):
+        s, v = self.s, self.v
+        s[1:3] = '_'
+        li = list(v)
+        li[1:3] = ['_']
+        v = ''.join(li)
+        eq_(s.data(), v)
+
+        s[1:4:2] = '_', '!'
+        li = list(v)
+        li[1:4:2] = '_', '!'
+        v = ''.join(li)
+        eq_(s.data(), v)
 
 
 class TestAssign(TestAccess):

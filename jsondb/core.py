@@ -606,7 +606,13 @@ class StringQueryable(PlainQueryable, SequenceQueryable):
         if isinstance(value, StringQueryable):
             return
         data = self.data()
-        data[key] = value
+        if isinstance(key, (int, long)):
+            if len(value) == 1:
+                data = '%s%s%s' % (data[:key], value, data[key+1:])
+        elif isinstance(key, slice):
+            chars = list(data)
+            chars[key] = list(value)
+            data = ''.join(chars)
         self._update(data)
 
 
