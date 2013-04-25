@@ -150,6 +150,16 @@ class Queryable(object):
         # TODO: store raw json data into a node.
         raise NotImplementedError
 
+    def from_file(self, f):
+        """ Load from a json file."""
+        if isinstance(f, basestring):
+            f = open(f, 'rd')
+
+        data = json.load(f)
+        self.feed(data)
+
+        f.close()
+
     def feed(self, data, parent=None):
         """Append data to the specified parent.
 

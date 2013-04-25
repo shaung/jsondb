@@ -400,23 +400,23 @@ def test_sample():
     # Insert
     db['name'] = 'foo'
 
-    db['friends'] = []
+    db['items'] = []
     for i in range(3):
-        db['friends'].append({
+        db['items'].append({
             'id' : i,
             'name': chr(97 + i),
         })
 
     # It works like an ordinary dict
     assert db['name'] == 'foo'
-    assert db['friends'][0]['id'] == 0
-    assert len(db['friends']) == 3
+    assert db['items'][0]['id'] == 0
+    assert len(db['items']) == 3
     assert db.get('nonexists', 'notfound') == 'notfound'
 
     # Get the *real* data
     assert db.data() == {
         'name' : 'foo',
-        'friends': [
+        'items': [
             {'id' : 0, 'name' : 'a'},
             {'id' : 1, 'name' : 'b'},
             {'id' : 2, 'name' : 'c'},
@@ -428,12 +428,22 @@ def test_sample():
 
     # Iterating the query result
     #   => "a b c"
-    for x in db.query('$.friends.name'):
+    for x in db.query('$.items.name'):
         print x.data(),
 
     # Conditonal query
-    eq_(db.query('$.friends[?(@.id = 1)].name').getone(), 'b')
+    eq_(db.query('$.items[?(@.id = 1)].name').getone(), 'b')
 
 
-    friends = db['friends']
-    eq_(friends.query('$.name').values(), ['a', 'b', 'c'])
+    items = db['items']
+    eq_(items.query('$.name').values(), ['a', 'b', 'c'])
+
+
+def test_from_file():
+    db = jsondb.create({
+        'foo' : {}
+    })
+    db['foo'].from_file('bookstore.json')
+    path = '$.store.book[?(@.author == "Evelyn Waugh")].title'
+    foo = db['foo']
+    eq_(foo.query(path).values(), ['Sword of Honour'])
