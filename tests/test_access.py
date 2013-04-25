@@ -122,6 +122,12 @@ class TestDict(TestAccess):
         for k, v in self.db['glossary'].iteritems():
             eq_(v, self.obj['glossary'][k])
 
+    def test_dict_contains(self):
+        # True
+        eq_('title' in self.obj['glossary'], 'title' in self.db['glossary'])
+        # False
+        eq_('Title' in self.obj['glossary'], 'Title' in self.db['glossary'])
+
 
 class TestList(TestAccess):
     def test_list(self):
@@ -173,6 +179,23 @@ class TestList(TestAccess):
         self.db['glossary']['numbers'] = range(10)
         eq_(max(self.db['glossary']['numbers']).data(), 9)
         eq_(min(self.db['glossary']['numbers']).data(), 0)
+
+    def test_list_delete(self):
+        persons = self.db['glossary']['persons']
+        del persons[0]
+        eq_(persons.data(), self.obj['glossary']['persons'][1:])
+
+    def test_list_delete_range(self):
+        tags = self.db['glossary']['persons'][-1]['tag']
+        del tags[1:-1]
+        eq_(tags.data(), self.obj['glossary']['persons'][-1]['tag'][::1])
+
+    def test_list_contains(self):
+        tags = self.db['glossary']['persons'][-1]['tag']
+        obj_tags = self.db['glossary']['persons'][-1]['tag']
+
+        eq_(2 in obj_tags, 2 in tags)
+        eq_('notexists' in obj_tags, 'notexists' in tags)
 
 
 class TestInteger(TestAccess):
@@ -334,6 +357,27 @@ class TestString(TestAccess):
         self.s *= 3
         self.v *= 3
         eq_(self.s, self.v)
+        
+    def test_setitem(self):
+        s, v = self.s, self.v
+        s[1] = '_'
+        v = v[0] + '_' + v[2:]
+        eq_(s.data(), v)
+
+    def test_setitem_slicing(self):
+        s, v = self.s, self.v
+        s[1:3] = '_'
+        li = list(v)
+        li[1:3] = ['_']
+        v = ''.join(li)
+        eq_(s.data(), v)
+
+        s[1:4:2] = '_', '!'
+        li = list(v)
+        li[1:4:2] = '_', '!'
+        v = ''.join(li)
+        eq_(s.data(), v)
+
 
 class TestAssign(TestAccess):
     def test_assign(self):

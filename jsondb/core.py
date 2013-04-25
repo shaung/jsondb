@@ -415,9 +415,20 @@ class SequenceQueryable(Queryable):
             node._update(value)
 
     def __delitem__(self, key):
-        key_id, _ = self.backend.find_key(key, self.root)
-        if key_id is not None:
-            self.backend.remove(key_id, include_self=True)
+        if self.datatype in (DICT, KEY):
+            key_id, _ = self.backend.find_key(key, self.root)
+            if key_id is not None:
+                self.backend.remove(key_id, include_self=True)
+        elif self.datatype == LIST:
+            if isinstance(key, (int, long)):
+                node = self[key]
+                if node:
+                    self.backend.remove(node.root, include_self=True)
+            elif isinstance(key, slice):
+                for node in self.backend.iter_slice(self.root, key.start, key.stop, key.step):
+                    self.backend.remove(node)
+        else:
+            raise UnsupportedTypeError
 
     def __iter__(self):
         for x in self.backend.iter_slice(self.root):
@@ -428,8 +439,8 @@ class SequenceQueryable(Queryable):
             yield self._make(x)
 
     def __contains__(self, item):
-        # TODO: hash
-        return False
+        # FIXME: This would be very slow
+        return item in self.data()
 
     def __add__(self, other):
         return self.data() + other
@@ -497,6 +508,10 @@ class DictQueryable(SequenceQueryable):
     def iteritems(self):
         for key, value_row in self.backend.iter_dict(self.root):
             yield key, self._make(value_row.id, value_row.type).data()
+
+    def __contains__(self, item):
+        key_id, _ = self.backend.find_key(item, self.root)
+        return key_id is not None
 
 
 class PlainQueryable(Queryable):
@@ -601,7 +616,13 @@ class StringQueryable(PlainQueryable, SequenceQueryable):
         if isinstance(value, StringQueryable):
             return
         data = self.data()
-        data[key] = value
+        if isinstance(key, (int, long)):
+            if len(value) == 1:
+                data = '%s%s%s' % (data[:key], value, data[key+1:])
+        elif isinstance(key, slice):
+            chars = list(data)
+            chars[key] = list(value)
+            data = ''.join(chars)
         self._update(data)
 
 
