@@ -487,7 +487,7 @@ def test_from_file():
     db = jsondb.create({
         'foo' : {}
     })
-    db['foo'].from_file('bookstore.json')
+    db['foo'].from_file(os.path.join(os.path.dirname(__file__), 'bookstore.json'))
     path = '$.store.book[?(@.author == "Evelyn Waugh")].title'
     foo = db['foo']
     eq_(foo.query(path).values(), ['Sword of Honour'])
