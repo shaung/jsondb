@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <link href='https://fonts.googleapis.com/css?family=Chivo:900' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <title>jsondb by shaung</title>
+  </head>
+
+  <body>
+    <div id="container">
+      <div class="inner">
+
+        <header>
+          <h1>jsondb</h1>
+          <h2>Off-memory json for large data that does not fit the memory.</h2>
+        </header>
+
+        <section id="downloads" class="clearfix">
+          <a href="https://github.com/shaung/jsondb/zipball/master" id="download-zip" class="button"><span>Download .zip</span></a>
+          <a href="https://github.com/shaung/jsondb/tarball/master" id="download-tar-gz" class="button"><span>Download .tar.gz</span></a>
+          <a href="https://github.com/shaung/jsondb" id="view-on-github" class="button"><span>View on GitHub</span></a>
+        </section>
+
+        <hr>
+
+        <section id="main_content">
+          <h3>Installation</h3>
+
+<p>To install, simply run</p>
+
+<pre><code>python setup.py install
+</code></pre>
+
+<h3>Getting started</h3>
+
+<p>To create a db:</p>
+
+<pre><code>import jsondb
+
+# Create from an empty dict (the default)
+db = jsondb.create({})
+
+# Or a list / tuple
+db = jsondb.create([])
+</code></pre>
+
+<p>to create from an existing JSON file:</p>
+
+<pre><code>db = jsondb.from_file(json_file_path)
+# file-like objects are accepted as well
+db = jsondb.from_file(open(json_file_path, 'rb'))
+</code></pre>
+
+<p>Now add some data to the db and access them:</p>
+
+<pre><code>db['name'] = 'foo'
+assert db['name'] == 'foo'
+
+db['items'] = []
+for i in range(3):
+    db['items'].append({
+        'id' : i,
+        'name': chr(97 + i),
+    })
+
+assert db['items'][0]['id'] == 0
+assert len(db['items']) == 3
+
+assert db.get('nonexists', 'notfound') == 'notfound'
+</code></pre>
+
+<p>It works like an ordinary dict / list,
+but to get its value, use the <code>data()</code> method:</p>
+
+<pre><code># =&gt; 'foo'
+print db['name'].data() 
+
+# Get the data
+assert db.data() == {
+    'name' : 'foo',
+    'items': [
+        {'id' : 0, 'name' : 'a'},
+        {'id' : 1, 'name' : 'b'},
+        {'id' : 2, 'name' : 'c'},
+    ]
+}
+</code></pre>
+
+<h3>Querying</h3>
+
+<p>jsondb also supports complex queries, in a syntax based on JSONPath,
+which is described here: <a href="http://goessner.net/articles/JsonPath/">http://goessner.net/articles/JsonPath/</a></p>
+
+<p><code>db.query</code> returns a <code>QueryResult</code> object which is iterable.</p>
+
+<pre><code>results = db.query('$.items.name')
+
+# Iterating the query result
+#   =&gt; "a b c"
+for x in results:
+    print x.data(),
+</code></pre>
+
+<p>To fetch all the value of the result,</p>
+
+<pre><code># =&gt; ['a', 'b', 'c']
+print rslt.values()
+</code></pre>
+
+<p>To fetch only one value,</p>
+
+<pre><code># fetch one result
+assert db.query('$.name').getone() == 'foo'
+# =&gt; 'foo'
+db.query('$.name').getone().data()
+</code></pre>
+
+<p>Example of more complex queries:</p>
+
+<pre><code># Conditonal query
+#   =&gt; 'b'
+print db.query('$.items[?(@.id = 1)].name').getone().data()
+
+# slicing
+# =&gt; ['a', 'b']
+print db.query('$.items[:-1].name').values()
+</code></pre>
+
+<h3>Persistence</h3>
+
+<p>All the data is stored on the disk.
+In the current implementation, data is saved as a sqlite database,
+but supports for other DBMS are on the table.</p>
+
+<p>both of <code>create</code> and <code>from_file</code> accept a <code>url</code> parameter,
+indicating where to store the data:</p>
+
+<pre><code>db = jsondb.create({}, url='path/to/filename.db')
+# which is equal to 
+db = jsondb.create({}, url='sqlite3://path/to/filename.db')
+</code></pre>
+
+<p>When not specified, a temporary file will be created in <code>/tmp</code> by default.</p>
+
+<p>To make sure all the changes made to db being saved to the file,</p>
+
+<pre><code>db.save()
+</code></pre>
+
+<p>And when not needed anymore, remember to close it:</p>
+
+<pre><code>db.close()
+</code></pre>
+
+<p>Or use context manager:</p>
+
+<pre><code>with jsondb.create(url='path/to/filename.db') as db:
+    # do all the work here
+</code></pre>
+
+<p>To load an existing jsondb file later,</p>
+
+<pre><code>db = jsondb.load('path/to/filename.db')
+</code></pre>
+
+<h3>License</h3>
+
+<p>Released under the BSD license.</p>
+        </section>
+
+        <footer>
+          jsondb is maintained by <a href="https://github.com/shaung">shaung</a><br>
+          This page was generated by <a href="http://pages.github.com">GitHub Pages</a>. Tactile theme by <a href="http://twitter.com/jasonlong">Jason Long</a>.
+        </footer>
+
+        
+      </div>
+    </div>
+  </body>
+</html>
