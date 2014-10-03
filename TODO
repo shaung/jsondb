@@ -1,0 +1,57 @@
+creation :
+
+    dbpath = 'bookstore.db'
+    with JsonDB.create({}, path=dbpath) as db:
+        db['name'] = 'foo'
+        db['books'] = []
+        for book in models.Books.object.all():
+            db['books'].append(book)
+        db.save(path)
+
+query :
+
+    db = JsonDB.load(dbpath)
+    books = db.query('$.books')
+    books += models.OtherBooks.object.all()
+    book = books[0]
+    book['price'] = 1
+    authors = books.query('$.[?(@.price > 8.99)].author')
+
+Simple Type:
+
+List:
+
+Dict:
+
+db.query('$.books')
+ => QueryablesArray([Queryable(root=book_list_entry)])
+
+results.query('$.[?(@.author = 'foo')]')
+ => QueryablesArray([Queryable(root=book_entry), Queryable(root=book_entry), ...])
+for x in results:
+    assert x == Queryable(root=book_entry)
+    repr(x)
+    assert x.value == {
+        'author': 'foo', title: '',
+    }
+
+db.query('$.book.'one=True)
+ => Queryable(root=book_list_entry)
+
+class QueryResults(list)
+
+class Queryable
+    data
+
+class ListNode(Queryable)
+    len
+    iter
+
+class DictNode(Queryable)
+    len -> number of keys
+    iter
+    keys
+    values
+
+class PlainNode(Queryable)
+
