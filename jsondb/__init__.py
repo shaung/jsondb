@@ -104,7 +104,7 @@ def load(url, **kws):
     root_type = _backend.get_root_type()
 
     cls = get_class(root_type)
-    self = cls(backend=_backend)
+    self = cls(datatype=root_type, backend=_backend)
 
     return self
 
