@@ -59,7 +59,7 @@ class TestSimpleTypes(TestBase):
     def test_nil(self):
         self.eq_dumps(NIL, None)
 
- 
+
 class TestLists(TestBase):
     def test_list_create(self):
         """test list"""
@@ -144,6 +144,18 @@ class TestDicts:
         eq_(rslt, ['well!'])
 
 
+def test_reload():
+    db = jsondb.create({}, url='/tmp/test.db')
+    eq_(db.keys(), [])
+    db['a'] = 1
+    eq_(db.keys(), ['a'])
+    db.close()
+
+    db = jsondb.load(url='/tmp/test.db')
+    eq_(db.keys(), ['a'])
+    db.close()
+
+
 def test_cxt():
     with jsondb.create({'name':'foo'}) as db:
         eq_(db['$.name'].data(), 'foo')
@@ -198,7 +210,7 @@ class TestComposed:
     def eq(self, path, expected):
         rslt = self.db.query(path).values()
         eq_(rslt, expected)
- 
+
     def test_name(self):
         path = '$.Obj.name'
         expected = [self.obj['Obj'][0]['name'], self.obj['Obj'][1]['name']]
